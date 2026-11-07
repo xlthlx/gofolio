@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  gopress:
+    build: .
+    ports:
+      - "${PORT:-8080}:8080"
+    volumes:
+      - ./frontend:/root/frontend
+      - ./db/gopress.db:/root/gopress.db
+    environment:
+      - PORT=${PORT:-8080}
+      - DOMAIN=${DOMAIN:-localhost}
+      - DATABASE_PATH=/root/gopress.db
+    restart: unless-stopped

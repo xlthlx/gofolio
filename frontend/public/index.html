@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>gopress Go</title>
+	<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+	<header>
+		<nav class="container">
+			<h1><a href="/" style="color:white;text-decoration:none;">gopress</a></h1>
+			<ul>
+				<li><a href="/">Home</a></li>
+				<li><a href="/admin/" id="admin-link" class="hidden">Admin</a></li>
+				<li><a href="/api/auth/logout/" id="logout-link" class="hidden">Logout</a></li>
+				<li><a href="/admin/login/" id="login-link">Login</a></li>
+			</ul>
+		</nav>
+	</header>
+
+	<main class="container">
+		<div id="posts-container" class="post-list">
+			<p>Loading posts...</p>
+		</div>
+	</main>
+
+	<script>
+		async function loadPosts() {
+			try {
+				const res = await fetch('/');
+				const data = await res.json();
+				const container = document.getElementById('posts-container');
+				
+				if (data.posts.length === 0) {
+					container.innerHTML = '<p>No posts yet. <a href="/admin/">Create one!</a></p>';
+					return;
+				}
+				
+				container.innerHTML = data.posts.map(post => `
+					<article class="post-card">
+						<h2>${post.title}</h2>
+						<div class="post-meta">${new Date(post.created_at).toLocaleDateString()}</div>
+						<p>${post.content.substring(0, 200)}...</p>
+						<a href="/posts/${post.slug}/" class="btn btn-primary">Read More</a>
+					</article>
+				`).join('');
+			} catch (err) {
+				console.error('Error loading posts:', err);
+			}
+		}
+
+		async function checkAuth() {
+			try {
+				const res = await fetch('/api/auth/check/');
+				const data = await res.json();
+				if (data.authenticated) {
+					document.getElementById('admin-link').classList.remove('hidden');
+					document.getElementById('logout-link').classList.remove('hidden');
+					document.getElementById('login-link').classList.add('hidden');
+				}
+			} catch (err) {
+				console.error('Auth check failed:', err);
+			}
+		}
+
+		loadPosts();
+		checkAuth();
+	</script>
+</body>
+</html>
