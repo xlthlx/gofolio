@@ -1,9 +1,9 @@
-# gopress CMS – Initial Folder Structure
+# gopress CMS – Folder Structure
 
 ```
 gopress/
 ├── cmd/
-│   └── gopress-server/
+│   └── server/
 │       ├── main.go          # Application entry point
 │       └── config.go        # Configuration loading
 │
@@ -40,7 +40,7 @@ gopress/
 │
 ├── pkg/
 │   ├── database/
-│   │   └── postgres.go      # PostgreSQL driver wrapper
+│   │   └── sqlite.go       # SQLite database
 │   ├── logger/
 │   │   └── zap_logger.go    # Structured logging
 │   └── util/
@@ -117,65 +117,10 @@ gopress/
 
 ---
 
-## Example File Skeletons
-
-### `cmd/gopress-server/main.go`
-```go
-package main
-
-import (
-    "log"
-    "os"
-
-    "github.com/xlthlx/gopress/internal/core"
-    "github.com/xlthlx/gopress/pkg/logger"
-)
-
-func main() {
-    log.Println("Starting gopress server...")
-
-    // Load config
-    cfg := loadConfig()
-
-    // Setup logger
-    logger.Init(cfg.LogLevel)
-
-    // Initialize engine
-    engine := core.NewEngine(cfg)
-
-    // Run server
-    if err := engine.Run(); err != nil {
-        log.Fatal(err)
-    }
-}
-```
-
-### `Makefile` (example targets)
-```makefile
-.PHONY: build test clean run
-
-build:
-    go build -o bin/gopress ./cmd/gopress-server
-
-test:
-    go test -v ./...
-
-clean:
-    rm -rf bin/
-
-run:
-    go run ./cmd/gopress-server
-```
-
----
-
 ## Naming Convention Notes
 
 - Package names are lowercase and descriptive (`store`, `handler`, `service`)
 - Files within packages are named after their primary responsibility (`content.go`, `auth.go`)
 - Test files mirror source: `content.go` → `content_test.go`
-- Import path: `github.com/xlthlx/gopress/internal/...`
 
 ---
-
-This structure scales well from a small CMS to a larger platform while staying true to your preference for simplicity. Once you start coding, the natural growth will be horizontal (adding new features in existing layers) rather than deep nesting.
