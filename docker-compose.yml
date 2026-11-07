@@ -1,0 +1,13 @@
+services:
+  gofolio:
+    build: .
+    ports:
+      - "${PORT:-8080}:8080"
+    volumes:
+      - ./frontend:/root/frontend
+      - ./db/gofolio.db:/root/gofolio.db
+    environment:
+      - PORT=${PORT:-8080}
+      - DOMAIN=${DOMAIN:-localhost}
+      - DATABASE_PATH=/root/gofolio.db
+    restart: unless-stopped
