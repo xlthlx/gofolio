@@ -1,4 +1,4 @@
-module gopress
+module gofolio
 
 go 1.24
 

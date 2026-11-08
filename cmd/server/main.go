@@ -15,7 +15,7 @@ import (
 	"syscall"
 	"time"
 
-	"gopress/internal/auth"
+	"gofolio/internal/auth"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -46,7 +46,7 @@ func initDB() error {
 	var err error
 	dbPath := os.Getenv("DATABASE_PATH")
 	if dbPath == "" {
-		dbPath = "./gopress.db"
+		dbPath = "./gofolio.db"
 	}
 
 	db, err = sql.Open("sqlite3", dbPath+"?_foreign_keys=on")
@@ -195,7 +195,7 @@ func main() {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	fmt.Printf("🚀 gopress Go running at http://%s:%s\n", domain, port)
+	fmt.Printf("🚀 gofolio Go running at http://%s:%s\n", domain, port)
 	fmt.Println("ℹ️  Default admin: username=admin, password=admin123")
 	fmt.Println("ℹ️  Change password after first login!")
 

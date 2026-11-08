@@ -1,11 +1,15 @@
-# gopress CMS – Folder Structure
+# goFolio CMS – Folder Structure
 
 ```
-gopress/
+gofolio/
 ├── cmd/
 │   └── server/
 │       ├── main.go          # Application entry point
 │       └── config.go        # Configuration loading
+│ 
+├── docs/
+│   ├── index.md             # Index of the documentation
+│   ├── folder-structure.md  # This file
 │
 ├── internal/
 │   ├── core/
@@ -53,18 +57,19 @@ gopress/
 │       └── routes.go        # API route definitions
 │
 ├── web/
-│   ├── static/
-│   │   ├── css/             # Admin panel styles
-│   │   ├── js/              # Frontend scripts
-│   │   └── images/          # Static assets
-│   └── templates/
+│   └── themes/
 │       ├── admin/           # Admin HTML templates
-│       └── public/          # Public site templates
-│
-├── configs/
-│   ├── development.yaml     # Dev environment config
-│   ├── staging.yaml         # Staging config
-│   └── production.yaml      # Production config
+│       ├   ├── default/
+│       ├       ├── assets/
+│       ├       │   ├── css/          # Admin panel styles
+│       ├       │   ├── js/           # Admin scripts
+│       ├       │   └── img/          # Static assets
+│       └── public/                   # Public site templates
+│           ├── default/
+│               ├── assets/
+│               │   ├── css/          # Frontend styles
+│               │   ├── js/           # Frontend scripts
+│               │   └── img/          # Static assets
 │
 ├── scripts/
 │   ├── migrate.sh           # Database migrations runner
@@ -78,6 +83,8 @@ gopress/
 │   └── fixtures/            # Test data/fixtures
 │
 ├── .env.example             # Environment template
+├── docker-compose.yml       # Docker compose file
+├── Dockerfile               # Docker file
 ├── Makefile                 # Build/test commands
 ├── go.mod                   # Module definition
 ├── go.sum                   # Dependencies

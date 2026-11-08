@@ -12,7 +12,7 @@ import (
 var store *sessions.CookieStore
 
 const (
-	SessionName   = "gopress_session"
+	SessionName   = "gofolio_session"
 	SessionMaxAge = 86400 // 24 hours
 	TokenLength   = 32
 )

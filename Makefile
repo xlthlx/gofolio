@@ -8,7 +8,7 @@ deps:
 	go mod verify
 
 build: deps
-	go build -o gopress ./cmd/server
+	go build -o gofolio ./cmd/server
 
 run:
 	PORT=$(PORT) DOMAIN=$(DOMAIN) go run ./cmd/server
@@ -32,7 +32,7 @@ docker-down:
 	docker-compose down
 
 clean:
-	rm -f gopress
+	rm -f gofolio
 	rm -f *.db
 
 seed:
