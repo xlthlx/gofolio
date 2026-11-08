@@ -12,10 +12,9 @@ import (
 var store *sessions.CookieStore
 
 const (
-	SessionName    = "gopress_session"
-	SessionMaxAge  = 86400 // 24 hours
-	PasswordMinLen = 8
-	TokenLength    = 32
+	SessionName   = "gopress_session"
+	SessionMaxAge = 86400 // 24 hours
+	TokenLength   = 32
 )
 
 func Init(secretKey []byte) {

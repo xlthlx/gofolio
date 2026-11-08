@@ -107,7 +107,7 @@ gopress/
 
 ## First Implementation Order
 
-1. **Foundation** (`cmd/`, `go.mod`, `configs/`)
+1. **Foundation** (`../cmd`, `go.mod`, `configs/`)
 2. **Core Layer** (`internal/model/`, `internal/store/db.go`)
 3. **Business Logic** (`internal/service/`)
 4. **HTTP Interface** (`internal/handler/http/`, `internal/handler/middleware/`)

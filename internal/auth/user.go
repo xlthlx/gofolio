@@ -40,7 +40,7 @@ func GetUserByUsername(db *sql.DB, username string) (*User, error) {
 		username,
 	).Scan(&u.ID, &u.Username, &u.Email, &passwordHash, &u.IsAdmin)
 
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errors.New("user not found")
 	}
 	if err != nil {

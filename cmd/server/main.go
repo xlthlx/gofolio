@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -14,10 +15,11 @@ import (
 	"syscall"
 	"time"
 
+	"gopress/internal/auth"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	_ "github.com/mattn/go-sqlite3"
-	"gopress/internal/auth"
 )
 
 var db *sql.DB
@@ -298,7 +300,7 @@ func getPostHandler(w http.ResponseWriter, r *http.Request) {
 
 	var p Post
 	err := row.Scan(&p.ID, &p.Title, &p.Slug, &p.Content, &p.Status, &p.CreatedAt, &p.UpdatedAt)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		http.NotFound(w, r)
 		return
 	}
@@ -441,7 +443,7 @@ func getPageHandler(w http.ResponseWriter, r *http.Request) {
 
 	var p Page
 	err := row.Scan(&p.ID, &p.Title, &p.Slug, &p.Content, &p.CreatedAt)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		http.NotFound(w, r)
 		return
 	}
