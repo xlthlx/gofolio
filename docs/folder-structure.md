@@ -40,7 +40,7 @@ gopress/
 │
 ├── pkg/
 │   ├── database/
-│   │   └── sqlite.go       # SQLite database
+│   │   └── sqlite.go        # SQLite database
 │   ├── logger/
 │   │   └── zap_logger.go    # Structured logging
 │   └── util/
