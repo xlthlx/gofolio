@@ -1,21 +1,17 @@
-package auth
+package service
 
 import (
 	"database/sql"
 	"errors"
 	"net/http"
+
+	"gofolio/internal/handler/middleware"
+	"gofolio/internal/model"
+	"gofolio/pkg/util"
 )
 
-type User struct {
-	ID       int64  `json:"id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Password string `json:"-"` // Never expose password
-	IsAdmin  bool   `json:"is_admin"`
-}
-
 func CreateUser(db *sql.DB, username, email, password string, isAdmin bool) (int64, error) {
-	hash, err := HashPassword(password)
+	hash, err := util.HashPassword(password)
 	if err != nil {
 		return 0, err
 	}
@@ -31,8 +27,8 @@ func CreateUser(db *sql.DB, username, email, password string, isAdmin bool) (int
 	return result.LastInsertId()
 }
 
-func GetUserByUsername(db *sql.DB, username string) (*User, error) {
-	var u User
+func GetUserByUsername(db *sql.DB, username string) (*model.User, error) {
+	var u model.User
 	var passwordHash string
 
 	err := db.QueryRow(
@@ -57,11 +53,11 @@ func Login(db *sql.DB, w http.ResponseWriter, r *http.Request, username, passwor
 		return err
 	}
 
-	if !CheckPasswordHash(password, user.Password) {
+	if !util.CheckPasswordHash(password, user.Password) {
 		return errors.New("invalid credentials")
 	}
 
-	return SetSession(w, r, user.Username, user.IsAdmin)
+	return middleware.SetSession(w, r, user.Username, user.IsAdmin)
 }
 
 func InitUsersTable(db *sql.DB) error {
@@ -78,7 +74,6 @@ func InitUsersTable(db *sql.DB) error {
 }
 
 func CreateDefaultAdmin(db *sql.DB) error {
-	// Check if admin exists
 	var count int
 	db.QueryRow("SELECT COUNT(*) FROM users WHERE is_admin = 1").Scan(&count)
 

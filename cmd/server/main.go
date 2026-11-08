@@ -15,10 +15,11 @@ import (
 	"syscall"
 	"time"
 
-	"gofolio/internal/auth"
+	"gofolio/internal/handler/middleware"
+	"gofolio/internal/service"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	chimw "github.com/go-chi/chi/v5/middleware"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -91,12 +92,12 @@ func initDB() error {
 	}
 
 	// Initialize auth users table
-	if err := auth.InitUsersTable(db); err != nil {
+	if err := service.InitUsersTable(db); err != nil {
 		return err
 	}
 
 	// Create default admin if none exists
-	if err := auth.CreateDefaultAdmin(db); err != nil {
+	if err := service.CreateDefaultAdmin(db); err != nil {
 		log.Printf("Warning: Could not create default admin: %v", err)
 	}
 
@@ -112,18 +113,18 @@ func main() {
 	// Initialize auth with a secure key (use env var in production)
 	authSecret := []byte(os.Getenv("AUTH_SECRET"))
 	if len(authSecret) == 0 {
-		secret, err := auth.GenerateSecureToken()
+		secret, err := middleware.GenerateSecureToken()
 		if err != nil {
 			log.Fatalf("Failed to generate auth secret: %v", err)
 		}
 		authSecret = []byte(secret)
 	}
-	auth.Init(authSecret)
+	middleware.Init(authSecret)
 
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.RealIP)
+	r.Use(chimw.Logger)
+	r.Use(chimw.Recoverer)
+	r.Use(chimw.RealIP)
 
 	// Trailing slash enforcement
 	r.Use(func(next http.Handler) http.Handler {
@@ -148,7 +149,7 @@ func main() {
 
 	// Admin routes with authentication
 	r.Route("/admin/", func(r chi.Router) {
-		r.Use(auth.RequireAuth)
+		r.Use(middleware.RequireAuth)
 
 		r.Get("/", adminDashboard)
 		r.Get("/dashboard/", adminDashboard)
@@ -221,7 +222,7 @@ func main() {
 
 func serveStatic(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/static/")
-	http.ServeFile(w, r, "frontend/"+path)
+	http.ServeFile(w, r, "web/themes/public/default/"+path)
 }
 
 // === Auth Handlers ===
@@ -244,7 +245,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := auth.Login(db, w, r, creds.Username, creds.Password); err != nil {
+	if err := service.Login(db, w, r, creds.Username, creds.Password); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid credentials"})
@@ -256,7 +257,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func logoutHandler(w http.ResponseWriter, r *http.Request) {
-	if err := auth.ClearSession(w, r); err != nil {
+	if err := middleware.ClearSession(w, r); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -267,7 +268,7 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 
 func checkAuthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]bool{"authenticated": auth.IsAuthenticated(r)})
+	json.NewEncoder(w).Encode(map[string]bool{"authenticated": middleware.IsAuthenticated(r)})
 }
 
 // === Post Handlers ===
@@ -419,19 +420,19 @@ func deletePost(w http.ResponseWriter, r *http.Request) {
 }
 
 func adminPostsView(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "frontend/admin/posts.html")
+	http.ServeFile(w, r, "web/themes/admin/default/posts.html")
 }
 
 func newPostEditor(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "frontend/admin/editor.html")
+	http.ServeFile(w, r, "web/themes/admin/default/editor.html")
 }
 
 func editPostEditor(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "frontend/admin/editor.html")
+	http.ServeFile(w, r, "web/themes/admin/default/editor.html")
 }
 
 func adminDashboard(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "frontend/admin/dashboard.html")
+	http.ServeFile(w, r, "web/themes/admin/default/dashboard.html")
 }
 
 // === Page Handlers ===
@@ -511,9 +512,9 @@ func createPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func adminPagesView(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "frontend/admin/pages.html")
+	http.ServeFile(w, r, "web/themes/admin/default/pages.html")
 }
 
 func adminSettings(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "frontend/admin/settings.html")
+	http.ServeFile(w, r, "web/themes/admin/default/settings.html")
 }

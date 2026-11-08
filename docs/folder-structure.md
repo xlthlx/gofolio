@@ -6,7 +6,7 @@ gofolio/
 │   └── server/
 │       ├── main.go          # Application entry point
 │       └── config.go        # Configuration loading
-│ 
+│
 ├── docs/
 │   ├── index.md             # Index of the documentation
 │   ├── folder-structure.md  # This file
@@ -59,17 +59,17 @@ gofolio/
 ├── web/
 │   └── themes/
 │       ├── admin/           # Admin HTML templates
-│       ├   ├── default/
-│       ├       ├── assets/
-│       ├       │   ├── css/          # Admin panel styles
-│       ├       │   ├── js/           # Admin scripts
-│       ├       │   └── img/          # Static assets
-│       └── public/                   # Public site templates
-│           ├── default/
-│               ├── assets/
-│               │   ├── css/          # Frontend styles
-│               │   ├── js/           # Frontend scripts
-│               │   └── img/          # Static assets
+│       │   └── default/
+│       │       └── assets/
+│       │           ├── css/  # Admin panel styles
+│       │           ├── js/   # Admin scripts
+│       │           └── img/  # Static assets
+│       └── public/          # Public site templates
+│           └── default/
+│               └── assets/
+│                   ├── css/  # Frontend styles
+│                   ├── js/   # Frontend scripts
+│                   └── img/  # Static assets
 │
 ├── scripts/
 │   ├── migrate.sh           # Database migrations runner
@@ -114,7 +114,7 @@ gofolio/
 
 ## First Implementation Order
 
-1. **Foundation** (`../cmd`, `go.mod`, `configs/`)
+1. **Foundation** (`cmd/`, `go.mod`, `.env.example`)
 2. **Core Layer** (`internal/model/`, `internal/store/db.go`)
 3. **Business Logic** (`internal/service/`)
 4. **HTTP Interface** (`internal/handler/http/`, `internal/handler/middleware/`)

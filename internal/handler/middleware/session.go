@@ -1,10 +1,9 @@
-package auth
+package middleware
 
 import (
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/hex"
-	. "net/http"
+	"net/http"
 
 	"github.com/gorilla/sessions"
 )
@@ -27,12 +26,12 @@ func Init(secretKey []byte) {
 	}
 }
 
-func GetSession(r *Request) *sessions.Session {
+func GetSession(r *http.Request) *sessions.Session {
 	session, _ := store.Get(r, SessionName)
 	return session
 }
 
-func SetSession(w ResponseWriter, r *Request, userID string, isAdmin bool) error {
+func SetSession(w http.ResponseWriter, r *http.Request, userID string, isAdmin bool) error {
 	session := GetSession(r)
 	session.Values["user_id"] = userID
 	session.Values["is_admin"] = isAdmin
@@ -40,14 +39,14 @@ func SetSession(w ResponseWriter, r *Request, userID string, isAdmin bool) error
 	return session.Save(r, w)
 }
 
-func ClearSession(w ResponseWriter, r *Request) error {
+func ClearSession(w http.ResponseWriter, r *http.Request) error {
 	session := GetSession(r)
 	session.Values = make(map[interface{}]interface{})
 	session.Options.MaxAge = -1
 	return session.Save(r, w)
 }
 
-func IsAuthenticated(r *Request) bool {
+func IsAuthenticated(r *http.Request) bool {
 	session := GetSession(r)
 	isAdmin, ok := session.Values["is_admin"].(bool)
 	return ok && isAdmin
@@ -59,18 +58,4 @@ func GenerateSecureToken() (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(b), nil
-}
-
-func HashPassword(password string) (string, error) {
-	// Simple hash for demo - use bcrypt in production
-	h := make([]byte, 32)
-	hash := sha256.Sum256([]byte(password))
-	copy(h, hash[:])
-	return hex.EncodeToString(h), nil
-}
-
-func CheckPasswordHash(password, hash string) bool {
-	// Simple check for demo - use bcrypt in production
-	h, _ := HashPassword(password)
-	return h == hash
 }
