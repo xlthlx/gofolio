@@ -68,6 +68,12 @@ The repository follows the layout described in detail in [docs/folder-structure.
 
 Passwords are hashed with bcrypt. Session cookies are marked HttpOnly. Authentication for the admin panel is enforced by middleware on every admin route. The application is suitable for small, self-hosted deployments; anyone exposing it publicly should review the session cookie `Secure` flag, which is currently disabled pending HTTPS deployment.
 
+## Credits
+
+The Gopher character featured in the banner is based on the Go mascot, designed by Renée French and used under the Creative Commons 3.0 Attributions license.
+
 ## License
 
-All rights reserved. See the repository settings or contact the maintainer for licensing terms.
+goFolio CMS is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. A full copy of the license is available at [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
