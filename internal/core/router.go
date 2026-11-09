@@ -42,6 +42,7 @@ func New(db *sql.DB) http.Handler {
 
 	// Public routes
 	r.Get("/", pub.ListPosts)
+	r.Get("/healthz/", (&web.Health{DB: db}).Check)
 	r.Get("/posts/{slug}/", pub.GetPost)
 	r.Get("/pages/{slug}/", pub.GetPage)
 	r.Get("/static/*", web.ServeStatic)
