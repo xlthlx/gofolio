@@ -38,6 +38,7 @@ func newTestRouter(db *sql.DB) http.Handler {
 	r.Put("/api/posts/{id}/", a.UpdatePost)
 	r.Delete("/api/posts/{id}/", a.DeletePost)
 	r.Get("/posts/{slug}/", p.GetPost)
+	r.Get("/healthz/", (&web.Health{DB: db}).Check)
 	return r
 }
 
@@ -167,5 +168,21 @@ func TestSlugify(t *testing.T) {
 		if got := web.Slugify(in); got != want {
 			t.Errorf("Slugify(%q) = %q, want %q", in, got, want)
 		}
+	}
+}
+
+func TestHealthCheck(t *testing.T) {
+	h := newTestRouter(newHandlerTestDB(t))
+
+	rec := doJSON(t, h, http.MethodGet, "/healthz/", nil)
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d; body: %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	var got map[string]string
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("decoding response: %v", err)
+	}
+	if got["status"] != "ok" {
+		t.Errorf("status field = %q, want ok", got["status"])
 	}
 }
