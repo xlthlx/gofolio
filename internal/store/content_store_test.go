@@ -14,7 +14,12 @@ func newTestDB(t *testing.T) *sql.DB {
 	if err != nil {
 		t.Fatalf("Open failed: %v", err)
 	}
-	t.Cleanup(func() { db.Close() })
+	t.Cleanup(func() {
+		err := db.Close()
+		if err != nil {
+			t.Fatalf("Close failed: %v", err)
+		}
+	})
 	if err := Migrate(db); err != nil {
 		t.Fatalf("Migrate failed: %v", err)
 	}
