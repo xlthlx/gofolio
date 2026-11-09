@@ -1,0 +1,171 @@
+package web_test
+
+import (
+	"bytes"
+	"database/sql"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"path/filepath"
+	"strconv"
+	"testing"
+
+	"github.com/go-chi/chi/v5"
+
+	web "gofolio/internal/handler/http"
+	"gofolio/internal/store"
+)
+
+func newHandlerTestDB(t *testing.T) *sql.DB {
+	t.Helper()
+	db, err := store.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	t.Cleanup(func() { db.Close() })
+	if err := store.Migrate(db); err != nil {
+		t.Fatalf("Migrate: %v", err)
+	}
+	return db
+}
+
+func newTestRouter(db *sql.DB) http.Handler {
+	a := &web.Admin{DB: db}
+	p := &web.Public{DB: db}
+	r := chi.NewRouter()
+	r.Get("/api/posts/", a.ListPosts)
+	r.Post("/api/posts/", a.CreatePost)
+	r.Put("/api/posts/{id}/", a.UpdatePost)
+	r.Delete("/api/posts/{id}/", a.DeletePost)
+	r.Get("/posts/{slug}/", p.GetPost)
+	return r
+}
+
+func doJSON(t *testing.T, h http.Handler, method, path string, body interface{}) *httptest.ResponseRecorder {
+	t.Helper()
+	var buf bytes.Buffer
+	if body != nil {
+		if err := json.NewEncoder(&buf).Encode(body); err != nil {
+			t.Fatalf("encoding request body: %v", err)
+		}
+	}
+	req := httptest.NewRequest(method, path, &buf)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	return rec
+}
+
+func intToStr(n int64) string {
+	return strconv.FormatInt(n, 10)
+}
+
+func TestCreatePostRequiresTitle(t *testing.T) {
+	h := newTestRouter(newHandlerTestDB(t))
+
+	rec := doJSON(t, h, http.MethodPost, "/api/posts/", map[string]string{})
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusBadRequest)
+	}
+}
+
+func TestCreatePostDefaultsSlugAndStatus(t *testing.T) {
+	h := newTestRouter(newHandlerTestDB(t))
+
+	rec := doJSON(t, h, http.MethodPost, "/api/posts/", map[string]string{"title": "Hello World"})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want %d; body: %s", rec.Code, http.StatusCreated, rec.Body.String())
+	}
+
+	var got map[string]interface{}
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("decoding response: %v", err)
+	}
+	if got["slug"] != "hello-world" {
+		t.Errorf("slug = %v, want hello-world", got["slug"])
+	}
+	if got["status"] != "draft" {
+		t.Errorf("status = %v, want draft", got["status"])
+	}
+}
+
+func TestUpdatePostInvalidID(t *testing.T) {
+	h := newTestRouter(newHandlerTestDB(t))
+
+	rec := doJSON(t, h, http.MethodPut, "/api/posts/notanumber/", map[string]string{"title": "x"})
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusBadRequest)
+	}
+}
+
+func TestDeletePostRoundTrip(t *testing.T) {
+	db := newHandlerTestDB(t)
+	h := newTestRouter(db)
+
+	create := doJSON(t, h, http.MethodPost, "/api/posts/", map[string]string{"title": "Temp"})
+	if create.Code != http.StatusCreated {
+		t.Fatalf("create status = %d, want %d", create.Code, http.StatusCreated)
+	}
+	var created struct {
+		ID int64 `json:"id"`
+	}
+	if err := json.Unmarshal(create.Body.Bytes(), &created); err != nil {
+		t.Fatalf("decoding created post: %v", err)
+	}
+
+	del := doJSON(t, h, http.MethodDelete, "/api/posts/"+intToStr(created.ID)+"/", nil)
+	if del.Code != http.StatusNoContent {
+		t.Errorf("delete status = %d, want %d", del.Code, http.StatusNoContent)
+	}
+
+	all, _ := store.PostStore{DB: db}.ListAll()
+	if len(all) != 0 {
+		t.Errorf("after delete, ListAll = %d posts, want 0", len(all))
+	}
+}
+
+func TestPublicGetPostVisibility(t *testing.T) {
+	db := newHandlerTestDB(t)
+	h := newTestRouter(db)
+
+	doJSON(t, h, http.MethodPost, "/api/posts/", map[string]string{"title": "Hidden One"})
+
+	if rec := doJSON(t, h, http.MethodGet, "/posts/hidden-one/", nil); rec.Code != http.StatusNotFound {
+		t.Errorf("draft via public API: status = %d, want %d", rec.Code, http.StatusNotFound)
+	}
+
+	list := doJSON(t, h, http.MethodGet, "/api/posts/", nil)
+	var posts []struct {
+		ID     int64  `json:"id"`
+		Status string `json:"status"`
+	}
+	if err := json.Unmarshal(list.Body.Bytes(), &posts); err != nil {
+		t.Fatalf("decoding admin list: %v", err)
+	}
+	if len(posts) != 1 {
+		t.Fatalf("admin list = %d posts, want 1", len(posts))
+	}
+
+	put := doJSON(t, h, http.MethodPut, "/api/posts/"+intToStr(posts[0].ID)+"/",
+		map[string]string{"title": "Hidden One", "slug": "hidden-one", "status": "published"})
+	if put.Code != http.StatusOK {
+		t.Fatalf("update status = %d, want %d; body: %s", put.Code, http.StatusOK, put.Body.String())
+	}
+
+	rec := doJSON(t, h, http.MethodGet, "/posts/hidden-one/", nil)
+	if rec.Code != http.StatusOK {
+		t.Errorf("published via public API: status = %d, want %d", rec.Code, http.StatusOK)
+	}
+}
+
+func TestSlugify(t *testing.T) {
+	cases := map[string]string{
+		"Hello World":      "hello-world",
+		"already-a-slug":   "already-a-slug",
+		"Mixed CASE Title": "mixed-case-title",
+	}
+	for in, want := range cases {
+		if got := web.Slugify(in); got != want {
+			t.Errorf("Slugify(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
