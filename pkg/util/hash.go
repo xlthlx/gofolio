@@ -1,21 +1,21 @@
 package util
 
-import (
-	"crypto/sha256"
-	"encoding/hex"
-)
+import "golang.org/x/crypto/bcrypt"
 
-// HashPassword returns a hex-encoded SHA-256 hash.
-// NOTE: simple hash for demo - use bcrypt or argon2 in production.
+// BcryptCost is the work factor for password hashing. The default (10) takes
+// roughly 50-100ms on typical hardware; raise it deliberately, never inline.
+const BcryptCost = bcrypt.DefaultCost
+
+// HashPassword returns a bcrypt hash with a random per-password salt.
 func HashPassword(password string) (string, error) {
-	hash := sha256.Sum256([]byte(password))
-	return hex.EncodeToString(hash[:]), nil
+	b, err := bcrypt.GenerateFromPassword([]byte(password), BcryptCost)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }
 
+// CheckPasswordHash reports whether the password matches the bcrypt hash.
 func CheckPasswordHash(password, hash string) bool {
-	h, err := HashPassword(password)
-	if err != nil {
-		return false
-	}
-	return h == hash
+	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil
 }
