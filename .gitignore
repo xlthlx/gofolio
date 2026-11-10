@@ -8,6 +8,9 @@
 # Do NOT ignore .distignore
 !.distignore
 
+# Do NOT ignore .gitignore
+!.gitkeep
+
 # Do NOT ignore .readme.md
 !README.md
 
