@@ -51,10 +51,11 @@ func New(db *sql.DB, tpl *web.Renderer) http.Handler {
 	r.Route("/admin/", func(r chi.Router) {
 		r.Use(middleware.RequireAuth)
 
-		r.Get("/", admin.View("dashboard.html"))
-		r.Get("/dashboard/", admin.View("dashboard.html"))
-		r.Get("/posts/", admin.PostsPage)        // was View
-		r.Get("/posts/table/", admin.PostsTable) // new fragment
+		r.Get("/", admin.DashboardPage)
+		r.Get("/dashboard/", admin.DashboardPage)
+		r.Get("/dashboard/recent/", admin.RecentPosts)
+		r.Get("/posts/", admin.PostsPage)
+		r.Get("/posts/table/", admin.PostsTable)
 		r.Get("/posts/new/", admin.View("editor.html"))
 		r.Get("/posts/{id}/edit/", admin.View("editor.html"))
 		r.Get("/pages/", admin.View("pages.html"))
@@ -68,6 +69,8 @@ func New(db *sql.DB, tpl *web.Renderer) http.Handler {
 		r.Post("/api/pages/", admin.CreatePage)
 	})
 
+	r.Get("/admin/login/", admin.LoginGet)
+	r.Post("/admin/login/", admin.LoginPost)
 	r.Get("/admin/static/*", web.ServeAdminStatic)
 
 	// Auth routes (no auth required)

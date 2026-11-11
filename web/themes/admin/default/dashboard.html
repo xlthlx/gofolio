@@ -4,142 +4,62 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Admin Dashboard - gofolio</title>
-	<link rel="stylesheet" href="assets/css/styles.css">
+	<link rel="stylesheet" href="/admin/static/assets/css/styles.css">
+	<script src="/admin/static/assets/js/htmx.min.js" defer></script>
 	<style>
-		.dashboard-grid {
-			display: grid;
-			grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-			gap: 1.5rem;
-			margin-bottom: 2rem;
-		}
-		.stat-card {
-			background: white;
-			padding: 1.5rem;
-			border-radius: 8px;
-			box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-		}
-		.stat-card h3 {
-			font-size: 0.9rem;
-			color: #666;
-			margin-bottom: 0.5rem;
-		}
-		.stat-card .value {
-			font-size: 2rem;
-			font-weight: bold;
-			color: #6d4aff;
-		}
-		.sidebar-nav {
-			background: white;
-			border-radius: 8px;
-			padding: 1rem;
-			box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-		}
-		.sidebar-nav ul {
-			list-style: none;
-		}
-		.sidebar-nav li {
-			margin-bottom: 0.5rem;
-		}
-		.sidebar-nav a {
-			display: block;
-			padding: 0.5rem;
-			text-decoration: none;
-			color: #333;
-			border-radius: 4px;
-		}
-		.sidebar-nav a:hover {
-			background: #f5f5f5;
-		}
+		.dashboard-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+		.stat-card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; }
+		.stat-card .value { font-size: 2rem; font-weight: bold; color: #6d4aff; }
+		.recent-item { display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid #eee; }
 	</style>
 </head>
 <body>
-	<header>
-		<nav class="container">
-			<h1><a href="/" style="color:white;text-decoration:none;">gofolio Admin</a></h1>
+<header>
+	<nav class="container">
+		<h1><a href="/" style="color:white;text-decoration:none;">gofolio Admin</a></h1>
+		<ul>
+			<li><a href="/" style="color:white;">View Site</a></li>
+			<li><a href="/api/auth/logout/" style="color:white;">Logout</a></li>
+		</ul>
+	</nav>
+</header>
+
+<main class="container">
+	<h2>Dashboard</h2>
+
+	<div class="dashboard-grid">
+		<div class="stat-card"><h3>Total Posts</h3><div class="value">{{.TotalPosts}}</div></div>
+		<div class="stat-card"><h3>Published</h3><div class="value">{{.Published}}</div></div>
+		<div class="stat-card"><h3>Drafts</h3><div class="value">{{.Drafts}}</div></div>
+		<div class="stat-card"><h3>Total Pages</h3><div class="value">{{.TotalPages}}</div></div>
+	</div>
+
+	<div style="display:flex;gap:1rem;margin-bottom:2rem;">
+		<a href="/admin/posts/new/" class="btn btn-primary">+ New Post</a>
+		<a href="/admin/pages/" class="btn btn-secondary">Manage Pages</a>
+		<a href="/admin/settings/" class="btn btn-secondary">Settings</a>
+	</div>
+
+	<div style="display:grid;grid-template-columns:250px 1fr;gap:2rem;">
+		<aside class="sidebar-nav">
 			<ul>
-				<li><a href="/" style="color:white;">View Site</a></li>
-				<li><a href="/api/auth/logout/" style="color:white;">Logout</a></li>
+				<li><a href="/admin/dashboard/">Dashboard</a></li>
+				<li><a href="/admin/posts/">Posts</a></li>
+				<li><a href="/admin/pages/">Pages</a></li>
+				<li><a href="/admin/settings/">Settings</a></li>
 			</ul>
-		</nav>
-	</header>
+		</aside>
 
-	<main class="container">
-		<div class="dashboard-grid">
-			<div class="stat-card">
-				<h3>Total Posts</h3>
-				<div class="value" id="total-posts">0</div>
+		<section>
+			<h2>Recent Posts</h2>
+			<div id="recent-posts"
+				 hx-get="/admin/dashboard/recent/"
+				 hx-trigger="every 30s"
+				 hx-swap="innerHTML">
+				{{template "recent_rows" .}}
 			</div>
-			<div class="stat-card">
-				<h3>Published</h3>
-				<div class="value" id="published-posts">0</div>
-			</div>
-			<div class="stat-card">
-				<h3>Drafts</h3>
-				<div class="value" id="draft-posts">0</div>
-			</div>
-			<div class="stat-card">
-				<h3>Total Pages</h3>
-				<div class="value" id="total-pages">0</div>
-			</div>
-		</div>
-
-		<div style="display:flex;gap:1rem;margin-bottom:2rem;">
-			<a href="/admin/posts/new/" class="btn btn-primary">+ New Post</a>
-			<a href="/admin/pages/" class="btn btn-secondary">Manage Pages</a>
-			<a href="/admin/settings/" class="btn btn-secondary">Settings</a>
-		</div>
-
-		<div style="display:grid;grid-template-columns:250px 1fr;gap:2rem;">
-			<aside class="sidebar-nav">
-				<ul>
-					<li><a href="/admin/dashboard/">Dashboard</a></li>
-					<li><a href="/admin/posts/">Posts</a></li>
-					<li><a href="/admin/pages/">Pages</a></li>
-					<li><a href="/admin/settings/">Settings</a></li>
-				</ul>
-			</aside>
-
-			<section>
-				<h2>Recent Posts</h2>
-				<div id="recent-posts">Loading...</div>
-			</section>
-		</div>
-	</main>
-
-	<script>
-		async function loadStats() {
-			const [postsRes, pagesRes] = await Promise.all([
-				fetch('/admin/api/posts/'),
-				fetch('/admin/api/pages/')
-			]);
-
-			const posts = await postsRes.json();
-			const pages = await pagesRes.json();
-
-			const totalPosts = posts.length;
-			const publishedPosts = posts.filter(p => p.status === 'published').length;
-			const drafts = posts.filter(p => p.status === 'draft').length;
-
-			document.getElementById('total-posts').textContent = totalPosts;
-			document.getElementById('published-posts').textContent = publishedPosts;
-			document.getElementById('draft-posts').textContent = drafts;
-			document.getElementById('total-pages').textContent = pages.length;
-
-			// Recent posts
-			const recentContainer = document.getElementById('recent-posts');
-			recentContainer.innerHTML = posts.slice(0, 5).map(post => `
-				<div style="background:white;padding:1rem;border-radius:8px;margin-bottom:0.5rem;">
-					<strong>${post.title}</strong>
-					<span style="float:right;color:#666;">${post.status}</span>
-					<div style="margin-top:0.5rem;">
-						<a href="/admin/posts/${post.id}/edit/">Edit</a> | 
-						<a href="/posts/${post.slug}/" target="_blank">View</a>
-					</div>
-				</div>
-			`).join('') || '<p>No posts yet.</p>';
-		}
-
-		loadStats();
-	</script>
+		</section>
+	</div>
+</main>
 </body>
 </html>

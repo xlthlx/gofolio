@@ -1,0 +1,14 @@
+{{define "recent_rows"}}
+{{if not .RecentPosts}}
+<p>No posts yet.</p>
+{{end}}
+{{range .RecentPosts}}
+<div class="recent-item">
+    <span>{{.Title}} <small>({{.Status}})</small></span>
+    <span>
+<a href="/admin/posts/{{.ID}}/edit/">Edit</a> |
+<a href="/posts/{{.Slug}}/" target="_blank">View</a>
+</span>
+</div>
+{{end}}
+{{end}}
