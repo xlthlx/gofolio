@@ -58,8 +58,10 @@ func New(db *sql.DB, tpl *web.Renderer) http.Handler {
 		r.Get("/posts/table/", admin.PostsTable)
 		r.Get("/posts/new/", admin.View("editor.html"))
 		r.Get("/posts/{id}/edit/", admin.View("editor.html"))
-		r.Get("/pages/", admin.View("pages.html"))
-		r.Get("/settings/", admin.View("settings.html"))
+		r.Get("/pages/", admin.PagesPage)
+		r.Get("/pages/table/", admin.PagesTable)
+		r.Get("/settings/", admin.SettingsPage)
+		r.Post("/settings/password/", admin.ChangePassword)
 
 		r.Get("/api/posts/", admin.ListPosts)
 		r.Post("/api/posts/", admin.CreatePost)

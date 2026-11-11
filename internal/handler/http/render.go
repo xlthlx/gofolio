@@ -12,6 +12,8 @@ import (
 // produces it.
 type Renderer struct {
 	posts     *template.Template
+	pages     *template.Template
+	settings  *template.Template
 	dashboard *template.Template
 	login     *template.Template
 }
@@ -47,6 +49,19 @@ func NewRenderer(adminThemeDir string) (*Renderer, error) {
 	if err != nil {
 		return nil, err
 	}
+	pages, err := template.ParseFiles(
+		filepath.Join(adminThemeDir, "pages.html"),
+		filepath.Join(adminThemeDir, "pages_table.html"),
+	)
+	if err != nil {
+		return nil, err
+	}
+	settings, err := template.ParseFiles(
+		filepath.Join(adminThemeDir, "settings.html"),
+	)
+	if err != nil {
+		return nil, err
+	}
 	dashboard, err := template.ParseFiles(
 		filepath.Join(adminThemeDir, "dashboard.html"),
 		filepath.Join(adminThemeDir, "dashboard_recent.html"),
@@ -60,7 +75,8 @@ func NewRenderer(adminThemeDir string) (*Renderer, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Renderer{posts: posts, dashboard: dashboard, login: login}, nil
+	return &Renderer{posts: posts, pages: pages, settings: settings,
+		dashboard: dashboard, login: login}, nil
 }
 
 // MustRenderer is NewRenderer, panicking on failure: a server that cannot
@@ -79,6 +95,18 @@ func (r *Renderer) PostsPage(w io.Writer, data interface{}) error {
 
 func (r *Renderer) PostsRows(w io.Writer, data interface{}) error {
 	return r.posts.ExecuteTemplate(w, "posts_rows", data)
+}
+
+func (r *Renderer) PagesPage(w io.Writer, data interface{}) error {
+	return r.pages.ExecuteTemplate(w, "pages.html", data)
+}
+
+func (r *Renderer) PagesRows(w io.Writer, data interface{}) error {
+	return r.pages.ExecuteTemplate(w, "pages_rows", data)
+}
+
+func (r *Renderer) SettingsPage(w io.Writer, data interface{}) error {
+	return r.settings.ExecuteTemplate(w, "settings.html", data)
 }
 
 func (r *Renderer) DashboardPage(w io.Writer, data interface{}) error {

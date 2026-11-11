@@ -59,3 +59,13 @@ func GenerateSecureToken() (string, error) {
 	}
 	return hex.EncodeToString(b), nil
 }
+
+// GetUserID returns the user id stored in the session, or an empty string.
+func GetUserID(r *http.Request) string {
+	session := GetSession(r)
+	id, ok := session.Values["user_id"].(string)
+	if !ok {
+		return ""
+	}
+	return id
+}
