@@ -10,6 +10,12 @@ goFolio is a minimal content management system built with simplicity as the guid
 
 The public side exposes published posts and pages as JSON. The admin side offers a dashboard, a post editor, page management, and settings, protected by session-based authentication.
 
+The admin side offers a dashboard, a post editor, page management, and settings, protected by session-based authentication. Admin pages are rendered server-side and progressively enhanced with HTMX.
+
+## Admin architecture
+
+The admin panel is server-rendered: each page arrives as complete HTML with its data already in place, avoiding the loading flashes of the previous client-side rendering. Interactive behaviour is built from small HTML fragments served by dedicated endpoints. The posts and pages tables re-render through their fragment endpoints after changes, the dashboard's recent-posts list refreshes itself on a timer, the login form posts over HTMX and swaps error messages into the page in place, and the password change in settings does the same. Every one of these flows also works as a plain form submission with JavaScript disabled, since HTMX attributes degrade to normal form posts. The post editor is the deliberate exception: it keeps a JSON round-trip through the admin API, because TinyMCE manages its own content state and the editor's save flow predates the migration. Editor and admin templates live in web/themes, and the fragment rendering logic lives in internal/handler/http.
+
 ## Getting started
 
 Requirements are Go 1.26 or newer and, for building inside containers only, Docker. SQLite support is compiled in through the `mattn/go-sqlite3` driver, so a C toolchain is needed to build (gcc and musl on Alpine, gcc or clang elsewhere).
