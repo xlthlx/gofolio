@@ -14,7 +14,7 @@ import (
 )
 
 // New builds the full application router.
-func New(db *sql.DB) http.Handler {
+func New(db *sql.DB, tpl *web.Renderer) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(chimw.Logger)
@@ -37,7 +37,7 @@ func New(db *sql.DB) http.Handler {
 	})
 
 	pub := &web.Public{DB: db}
-	admin := &web.Admin{DB: db}
+	admin := &web.Admin{DB: db, Tpl: tpl}
 	authH := &web.Auth{DB: db}
 
 	// Public routes
@@ -53,7 +53,8 @@ func New(db *sql.DB) http.Handler {
 
 		r.Get("/", admin.View("dashboard.html"))
 		r.Get("/dashboard/", admin.View("dashboard.html"))
-		r.Get("/posts/", admin.View("posts.html"))
+		r.Get("/posts/", admin.PostsPage)        // was View
+		r.Get("/posts/table/", admin.PostsTable) // new fragment
 		r.Get("/posts/new/", admin.View("editor.html"))
 		r.Get("/posts/{id}/edit/", admin.View("editor.html"))
 		r.Get("/pages/", admin.View("pages.html"))
@@ -66,6 +67,8 @@ func New(db *sql.DB) http.Handler {
 		r.Get("/api/pages/", admin.ListPages)
 		r.Post("/api/pages/", admin.CreatePage)
 	})
+
+	r.Get("/admin/static/*", web.ServeAdminStatic)
 
 	// Auth routes (no auth required)
 	r.Post("/api/auth/login/", authH.Login)

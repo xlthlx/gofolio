@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -29,8 +30,10 @@ func newHandlerTestDB(t *testing.T) *sql.DB {
 	return db
 }
 
+var testRenderer = web.MustRenderer(web.FindAdminThemeDir())
+
 func newTestRouter(db *sql.DB) http.Handler {
-	a := &web.Admin{DB: db}
+	a := &web.Admin{DB: db, Tpl: testRenderer}
 	p := &web.Public{DB: db}
 	r := chi.NewRouter()
 	r.Get("/api/posts/", a.ListPosts)
@@ -38,6 +41,7 @@ func newTestRouter(db *sql.DB) http.Handler {
 	r.Put("/api/posts/{id}/", a.UpdatePost)
 	r.Delete("/api/posts/{id}/", a.DeletePost)
 	r.Get("/posts/{slug}/", p.GetPost)
+	r.Get("/admin/posts/table/", a.PostsTable)
 	r.Get("/healthz/", (&web.Health{DB: db}).Check)
 	return r
 }
@@ -184,5 +188,19 @@ func TestHealthCheck(t *testing.T) {
 	}
 	if got["status"] != "ok" {
 		t.Errorf("status field = %q, want ok", got["status"])
+	}
+}
+
+func TestPostsTableFragment(t *testing.T) {
+	h := newTestRouter(newHandlerTestDB(t))
+
+	doJSON(t, h, http.MethodPost, "/api/posts/", map[string]string{"title": "Fragment Me"})
+	rec := doJSON(t, h, http.MethodGet, "/admin/posts/table/", nil)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if body := rec.Body.String(); !strings.Contains(body, "Fragment Me") {
+		t.Errorf("fragment does not contain the post title; body:\n%s", body)
 	}
 }

@@ -12,13 +12,47 @@ import (
 	"gofolio/internal/store"
 )
 
-// Admin handles the authenticated admin panel: views and CRUD endpoints.
-type Admin struct{ DB *sql.DB }
+// Admin handles the authenticated admin panel: pages, fragments and CRUD.
+type Admin struct {
+	DB  *sql.DB
+	Tpl *Renderer
+}
 
-// View serves a static admin template.
+// View serves a static admin template (used by pages not yet migrated).
 func (h Admin) View(file string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, AdminThemeDir+"/"+file)
+	}
+}
+
+// PostsData is the model for the posts page and the table fragment.
+type PostsData struct {
+	Posts []model.Post
+}
+
+func (h Admin) postsData() PostsData {
+	posts, err := h.posts().ListAll()
+	if err != nil {
+		return PostsData{}
+	}
+	return PostsData{Posts: posts}
+}
+
+// PostsPage renders the full posts management page, rows included.
+func (h Admin) PostsPage(w http.ResponseWriter, r *http.Request) {
+	data := h.postsData()
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := h.Tpl.PostsPage(w, data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// PostsTable renders only the posts table, for HTMX fragment swaps.
+func (h Admin) PostsTable(w http.ResponseWriter, r *http.Request) {
+	data := h.postsData()
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := h.Tpl.PostsRows(w, data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
@@ -72,6 +106,8 @@ func (h Admin) UpdatePost(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "updated", "id": strconv.FormatInt(id, 10)})
 }
 
+// DeletePost removes a post. HTMX requests get an empty 200 (the caller
+// swaps away the table row); plain API clients keep the original 204.
 func (h Admin) DeletePost(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r)
 	if err != nil {
@@ -80,6 +116,10 @@ func (h Admin) DeletePost(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := h.posts().Delete(id); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if r.Header.Get("HX-Request") == "true" {
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -128,7 +168,6 @@ func parseID(r *http.Request) (int64, error) {
 	return strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 }
 
-// Slugify TODO: convert special chars and accented letters into hyphens.
 // Slugify converts a title to a URL slug (lowercase, hyphen-separated).
 func Slugify(title string) string {
 	return strings.ToLower(strings.ReplaceAll(title, " ", "-"))
