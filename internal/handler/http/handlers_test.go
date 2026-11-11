@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"gofolio/internal/handler/middleware"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -14,8 +16,14 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	web "gofolio/internal/handler/http"
+	"gofolio/internal/service"
 	"gofolio/internal/store"
 )
+
+func TestMain(m *testing.M) {
+	middleware.Init([]byte("unit-test-secret"))
+	os.Exit(m.Run())
+}
 
 func newHandlerTestDB(t *testing.T) *sql.DB {
 	t.Helper()
@@ -43,6 +51,8 @@ func newTestRouter(db *sql.DB) http.Handler {
 	r.Get("/posts/{slug}/", p.GetPost)
 	r.Get("/admin/posts/table/", a.PostsTable)
 	r.Get("/healthz/", (&web.Health{DB: db}).Check)
+	r.Get("/admin/dashboard/", a.DashboardPage)
+	r.Get("/admin/login/", a.LoginGet)
 	return r
 }
 
@@ -202,5 +212,86 @@ func TestPostsTableFragment(t *testing.T) {
 	}
 	if body := rec.Body.String(); !strings.Contains(body, "Fragment Me") {
 		t.Errorf("fragment does not contain the post title; body:\n%s", body)
+	}
+}
+
+func TestDashboardPageRendersStats(t *testing.T) {
+	h := newTestRouter(newHandlerTestDB(t))
+
+	doJSON(t, h, http.MethodPost, "/api/posts/", map[string]string{"title": "Shown Here"})
+	rec := doJSON(t, h, http.MethodGet, "/admin/dashboard/", nil)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "Shown Here") {
+		t.Errorf("dashboard does not contain recent post title; body:\n%s", body)
+	}
+	if !strings.Contains(body, "Total Posts") {
+		t.Errorf("dashboard does not contain stats; body:\n%s", body)
+	}
+}
+
+func TestLoginGetRendersPage(t *testing.T) {
+	h := newTestRouter(newHandlerTestDB(t))
+
+	rec := doJSON(t, h, http.MethodGet, "/admin/login/", nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if body := rec.Body.String(); !strings.Contains(body, `hx-post="/admin/login/"`) {
+		t.Errorf("login page does not contain hx-post form; body:\n%s", body)
+	}
+}
+
+func TestLoginPostHTMXSuccess(t *testing.T) {
+	db := newHandlerTestDB(t)
+	service.InitUsersTable(db)
+	service.CreateDefaultAdmin(db)
+
+	a := &web.Admin{DB: db, Tpl: testRenderer}
+	r := chi.NewRouter()
+	r.Post("/admin/login/", a.LoginPost)
+
+	req := httptest.NewRequest(http.MethodPost, "/admin/login/",
+		strings.NewReader("username=admin&password=admin123"))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("HX-Request", "true")
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body: %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	if loc := rec.Header().Get("HX-Redirect"); loc != "/admin/" {
+		t.Errorf("HX-Redirect = %q, want /admin/", loc)
+	}
+	if len(rec.Result().Cookies()) == 0 {
+		t.Error("successful HTMX login did not set a session cookie")
+	}
+}
+
+func TestLoginPostHTMXFailureReturnsFragment(t *testing.T) {
+	db := newHandlerTestDB(t)
+	service.InitUsersTable(db)
+	service.CreateDefaultAdmin(db)
+
+	a := &web.Admin{DB: db, Tpl: testRenderer}
+	r := chi.NewRouter()
+	r.Post("/admin/login/", a.LoginPost)
+
+	req := httptest.NewRequest(http.MethodPost, "/admin/login/",
+		strings.NewReader("username=admin&password=wrong"))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("HX-Request", "true")
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusUnauthorized)
+	}
+	if body := rec.Body.String(); !strings.Contains(body, "Invalid username or password.") {
+		t.Errorf("error fragment not rendered; body:\n%s", body)
 	}
 }

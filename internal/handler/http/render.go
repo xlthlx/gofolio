@@ -7,8 +7,13 @@ import (
 	"path/filepath"
 )
 
+// Renderer parses the admin templates once at startup and renders pages and
+// fragments. HTMX needs server-rendered HTML; this is the single place that
+// produces it.
 type Renderer struct {
-	posts *template.Template
+	posts     *template.Template
+	dashboard *template.Template
+	login     *template.Template
 }
 
 // FindAdminThemeDir locates the admin theme directory. It honours the
@@ -33,6 +38,7 @@ func FindAdminThemeDir() string {
 	return AdminThemeDir // best effort; NewRenderer will fail with a clear error
 }
 
+// NewRenderer parses the admin templates from the theme directory.
 func NewRenderer(adminThemeDir string) (*Renderer, error) {
 	posts, err := template.ParseFiles(
 		filepath.Join(adminThemeDir, "posts.html"),
@@ -41,9 +47,24 @@ func NewRenderer(adminThemeDir string) (*Renderer, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Renderer{posts: posts}, nil
+	dashboard, err := template.ParseFiles(
+		filepath.Join(adminThemeDir, "dashboard.html"),
+		filepath.Join(adminThemeDir, "dashboard_recent.html"),
+	)
+	if err != nil {
+		return nil, err
+	}
+	login, err := template.ParseFiles(
+		filepath.Join(adminThemeDir, "login.html"),
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &Renderer{posts: posts, dashboard: dashboard, login: login}, nil
 }
 
+// MustRenderer is NewRenderer, panicking on failure: a server that cannot
+// parse its templates should not start.
 func MustRenderer(dir string) *Renderer {
 	r, err := NewRenderer(dir)
 	if err != nil {
@@ -58,4 +79,20 @@ func (r *Renderer) PostsPage(w io.Writer, data interface{}) error {
 
 func (r *Renderer) PostsRows(w io.Writer, data interface{}) error {
 	return r.posts.ExecuteTemplate(w, "posts_rows", data)
+}
+
+func (r *Renderer) DashboardPage(w io.Writer, data interface{}) error {
+	return r.dashboard.ExecuteTemplate(w, "dashboard.html", data)
+}
+
+func (r *Renderer) RecentRows(w io.Writer, data interface{}) error {
+	return r.dashboard.ExecuteTemplate(w, "recent_rows", data)
+}
+
+func (r *Renderer) LoginPage(w io.Writer, data interface{}) error {
+	return r.login.ExecuteTemplate(w, "login_page", data)
+}
+
+func (r *Renderer) LoginError(w io.Writer, data interface{}) error {
+	return r.login.ExecuteTemplate(w, "login_error", data)
 }
