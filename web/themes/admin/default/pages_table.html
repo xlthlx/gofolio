@@ -1,0 +1,22 @@
+{{define "pages_rows"}}
+<tbody id="pages-rows">
+{{if not .Pages}}
+<tr><td colspan="4">No pages yet.</td></tr>
+{{end}}
+{{range .Pages}}
+<tr>
+    <td>{{.Title}}</td>
+    <td>{{.Status}}</td>
+    <td>{{.CreatedAt.Format "2006-01-02 15:04"}}</td>
+    <td>
+        <a href="/admin/pages/{{.ID}}/edit/">Edit</a>
+        <button class="btn"
+                hx-delete="/admin/api/pages/{{.ID}}/"
+                hx-confirm="Delete '{{.Title}}'?"
+                hx-target="closest tr"
+                hx-swap="outerHTML">Delete</button>
+    </td>
+</tr>
+{{end}}
+</tbody>
+{{end}}

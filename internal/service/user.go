@@ -84,3 +84,26 @@ func CreateDefaultAdmin(db *sql.DB) error {
 	}
 	return nil
 }
+
+// ChangePassword replaces the stored password hash for the user with the
+// given id. Callers are responsible for session policy; existing cookies
+// stay valid after a successful change.
+func ChangePassword(db *sql.DB, userID, newPassword string) error {
+	hash, err := util.HashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+	res, err := db.Exec(`UPDATE users SET password_hash = ? WHERE id = ?`,
+		hash, userID)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return errors.New("user not found")
+	}
+	return nil
+}

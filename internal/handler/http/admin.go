@@ -172,3 +172,32 @@ func parseID(r *http.Request) (int64, error) {
 func Slugify(title string) string {
 	return strings.ToLower(strings.ReplaceAll(title, " ", "-"))
 }
+
+// PagesData feeds the pages page and its table fragment.
+type PagesData struct {
+	Pages []model.Page
+}
+
+func (h Admin) pagesData() PagesData {
+	pages, err := h.pages().ListAll()
+	if err != nil {
+		return PagesData{}
+	}
+	return PagesData{Pages: pages}
+}
+
+// PagesPage renders the full pages management page, rows included.
+func (h Admin) PagesPage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := h.Tpl.PagesPage(w, h.pagesData()); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// PagesTable renders only the pages table, for HTMX fragment swaps.
+func (h Admin) PagesTable(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := h.Tpl.PagesRows(w, h.pagesData()); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
