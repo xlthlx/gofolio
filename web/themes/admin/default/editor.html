@@ -5,8 +5,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Editor - gofolio</title>
 	<link rel="stylesheet" href="/static/styles.css">
-	<!-- TinyMCE CDN -->
-	<script src="https://cdn.tiny.cloud/1/no-api/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+	<script src="/admin/static/assets/tinymce/tinymce.min.js" defer></script>
 	<style>
 		.editor-form { max-width: 800px; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 		.form-group { margin-bottom: 1.5rem; }
@@ -83,6 +82,7 @@
 		}
 
 		tinymce.init({
+			license_key: 'gpl',
 			target: document.getElementById('content'),
 			height: 400,
 			plugins: 'autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table code help wordcount',

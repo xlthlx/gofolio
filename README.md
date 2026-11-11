@@ -70,7 +70,9 @@ Passwords are hashed with bcrypt. Session cookies are marked HttpOnly. Authentic
 
 ## Credits
 
-The Gopher character featured in the banner is based on the Go mascot, designed by Renée French and used under the Creative Commons 3.0 Attributions license.
+The Gopher character featured in the banner is based on the Go mascot, designed by Renée French and used under the Creative Commons 3.0 Attributions license. 
+
+The admin rich-text editor is TinyMCE, © Ephox Corporation / Tiny Technologies, Inc., released under GPLv2+, self-hosted under the same GPL terms as this project.
 
 ## License
 
