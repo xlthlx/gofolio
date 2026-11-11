@@ -3,6 +3,7 @@ package integration_test
 import (
 	"bytes"
 	"encoding/json"
+	web "gofolio/internal/handler/http"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -38,7 +39,8 @@ func newTestServer(t *testing.T) (string, *http.Client) {
 	}
 	middleware.Init([]byte("integration-test-secret"))
 
-	ts := httptest.NewServer(core.New(db))
+	tpl := web.MustRenderer(web.FindAdminThemeDir())
+	ts := httptest.NewServer(core.New(db, tpl))
 	t.Cleanup(ts.Close)
 
 	jar, err := cookiejar.New(nil)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	web "gofolio/internal/handler/http"
 	"log"
 	"net/http"
 	"os"
@@ -53,9 +54,11 @@ func main() {
 	}
 	middleware.Init(authSecret)
 
+	tpl := web.MustRenderer(web.FindAdminThemeDir())
+
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
-		Handler:      core.New(db),
+		Handler:      core.New(db, tpl),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,
