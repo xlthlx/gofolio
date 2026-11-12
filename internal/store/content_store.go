@@ -130,3 +130,40 @@ func (s PageStore) Create(p *model.Page) error {
 	p.CreatedAt = time.Now()
 	return nil
 }
+
+// GetByID returns the page with the given id, or sql.ErrNoRows.
+func (s PageStore) GetByID(id int64) (*model.Page, error) {
+	var p model.Page
+	row := s.DB.QueryRow(
+		`SELECT id, title, slug, content, created_at FROM pages WHERE id = ?`, id)
+	err := row.Scan(&p.ID, &p.Title, &p.Slug, &p.Content, &p.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// Update modifies title, slug and content of an existing page.
+func (s PageStore) Update(p *model.Page, id int64) error {
+	_, err := s.DB.Exec(
+		`UPDATE pages SET title = ?, slug = ?, content = ? WHERE id = ?`,
+		p.Title, p.Slug, p.Content, id)
+	return err
+}
+
+// Delete removes the page with the given id.
+func (s PageStore) Delete(id int64) error {
+	_, err := s.DB.Exec(`DELETE FROM pages WHERE id = ?`, id)
+	return err
+}
+
+func (s PostStore) GetByID(id int64) (*model.Post, error) {
+	var p model.Post
+	row := s.DB.QueryRow(
+		`SELECT id, title, slug, content, status, created_at FROM posts WHERE id = ?`, id)
+	err := row.Scan(&p.ID, &p.Title, &p.Slug, &p.Content, &p.Status, &p.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}

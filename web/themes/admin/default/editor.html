@@ -59,17 +59,16 @@
 		const postId = new URLSearchParams(window.location.search).get('id') ||
 			window.location.pathname.match(/\/posts\/(\d+)\/edit\//)?.[1];
 
-		async function loadEditor() {
+		async function loadEditor(editor) {
 			if (postId) {
 				const res = await fetch(`/admin/api/posts/${postId}/`);
 				const post = await res.json();
-
 				document.getElementById('post-id').value = post.id;
 				document.getElementById('title').value = post.title;
 				document.getElementById('slug').value = post.slug;
 				document.getElementById('status').value = post.status;
+				editor.setContent(post.content || '');
 			}
-
 			document.getElementById('loading').classList.add('hidden');
 			document.getElementById('editor-form').classList.remove('hidden');
 		}
@@ -78,11 +77,30 @@
 			license_key: 'gpl',
 			target: document.getElementById('content'),
 			height: 400,
-			plugins: 'autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table code help wordcount',
-			toolbar: 'undo redo | formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help',
+			menubar: '',
+			plugins: [
+				'autoresize', 'advlist', 'autolink', 'link', 'image', 'lists', 'charmap', 'preview', 'anchor',
+				'searchreplace', 'wordcount', 'visualblocks', 'visualchars', 'code', 'fullscreen',
+				'media', 'table', 'emoticons', 'help'
+			],
+			toolbar1: 'styles bold italic strikethrough link bullist numlist alignleft aligncenter alignright image media table code',
+			toolbar2: 'hr blockquote outdent indent anchor searchreplace charmap undo redo removeformat fullscreen wordcount help ',
+			styles_toolbar: '',
+			style_formats: [
+				{title: 'Paragraph', format: 'p'},
+				{title: 'Heading 2', format: 'h2'},
+				{title: 'Heading 3', format: 'h3'},
+				{title: 'Heading 4', format: 'h4'},
+				{title: 'Heading 5', format: 'h5'},
+				{title: 'Heading 6', format: 'h6'},
+				{title: 'Preformatted', format: 'pre'}
+			],
 			setup: function(editor) {
 				editor.on('change', function() {
 					document.getElementById('content').value = editor.getContent();
+				});
+				editor.on('init', function() {
+					loadEditor(editor);   // TinyMCE is ready — safe to load data now
 				});
 			}
 		});
@@ -119,8 +137,6 @@
 				alert('Error saving post');
 			}
 		});
-
-		loadEditor();
 	</script>
 </body>
 </html>

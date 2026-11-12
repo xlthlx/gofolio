@@ -6,11 +6,11 @@
 {{range .Pages}}
 <tr>
     <td>{{.Title}}</td>
-    <td>{{.Status}}</td>
-    <td>{{.CreatedAt.Format "2006-01-02 15:04"}}</td>
+    <td>{{.Slug}}</td>
+    <td>{{.CreatedAt.Format "02/01/2006 15:04"}}</td>
     <td>
-        <a href="/admin/pages/{{.ID}}/edit/">Edit</a>
-        <button class="btn"
+        <a class="btn btn-secondary" href="/admin/pages/{{.ID}}/edit/">Edit</a>
+        <button class="btn btn-error"
                 hx-delete="/admin/api/pages/{{.ID}}/"
                 hx-confirm="Delete '{{.Title}}'?"
                 hx-target="closest tr"
