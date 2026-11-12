@@ -201,3 +201,84 @@ func (h Admin) PagesTable(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
+
+// GetPageAPI returns one page as JSON (used by the editor's load step).
+func (h Admin) GetPageAPI(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(r)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	page, err := h.pages().GetByID(id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	writeJSON(w, http.StatusOK, page)
+}
+
+// UpdatePage accepts the editor's JSON PUT.
+func (h Admin) UpdatePage(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(r)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	var page model.Page
+	if err := decodeJSON(r, &page); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if page.Title == "" {
+		http.Error(w, "Title is required", http.StatusBadRequest)
+		return
+	}
+	if page.Slug == "" {
+		page.Slug = Slugify(page.Title)
+	}
+	if err := h.pages().Update(&page, id); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "updated"})
+}
+
+// DeletePage removes a page. HTMX requests get an empty 200 (row swap);
+// plain API clients get the original 204.
+func (h Admin) DeletePage(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(r)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	if err := h.pages().Delete(id); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if r.Header.Get("HX-Request") == "true" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// PageEditor serves the page editor template for both /new/ and /{id}/edit/.
+// It is a static shell like posts/editor.html: the content loads via the
+// JSON API. Parameterised so one handler covers both routes.
+func (h Admin) PageEditor() http.HandlerFunc {
+	return h.View("page_editor.html")
+}
+
+func (h Admin) GetPostAPI(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(r)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	post, err := h.posts().GetByID(id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	writeJSON(w, http.StatusOK, post)
+}

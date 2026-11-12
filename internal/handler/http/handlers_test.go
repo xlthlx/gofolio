@@ -331,21 +331,15 @@ func TestLoginPostHTMXFailureReturnsFragment(t *testing.T) {
 // changePasswordRouter seeds a real user through the service layer and
 // returns the router plus the user's id (formatted for the session, which
 // stores user_id as a string regardless of the column type).
-func changePasswordRouter(t *testing.T, db *sql.DB) (http.Handler, string) {
+func changePasswordRouter(t *testing.T, db *sql.DB) http.Handler {
 	t.Helper()
 	if _, err := service.CreateUser(db, "alice", "alice@localhost", "oldpassword", false); err != nil {
 		t.Fatalf("seeding user: %v", err)
 	}
-	var id any
-	if err := db.QueryRow(`SELECT id FROM users WHERE username = 'alice'`).Scan(&id); err != nil {
-		t.Fatalf("reading user id: %v", err)
-	}
-	userID := fmt.Sprintf("%v", id)
-
 	a := &web.Admin{DB: db, Tpl: testRenderer}
 	r := chi.NewRouter()
 	r.Post("/admin/settings/password/", a.ChangePassword)
-	return r, userID
+	return r
 }
 
 // authedCookie produces a response carrying a valid session cookie for the
@@ -362,8 +356,8 @@ func authedCookie(t *testing.T, userID string) *http.Response {
 
 func TestChangePasswordRoundTrip(t *testing.T) {
 	db := newHandlerTestDB(t)
-	r, userID := changePasswordRouter(t, db)
-	resp := authedCookie(t, userID)
+	r := changePasswordRouter(t, db)
+	resp := authedCookie(t, "alice")
 
 	form := strings.NewReader("new_password=newpassword&confirm_password=newpassword")
 	req := httptest.NewRequest(http.MethodPost, "/admin/settings/password/", form)
@@ -397,8 +391,8 @@ func TestChangePasswordRoundTrip(t *testing.T) {
 
 func TestChangePasswordValidation(t *testing.T) {
 	db := newHandlerTestDB(t)
-	r, userID := changePasswordRouter(t, db)
-	resp := authedCookie(t, userID)
+	r := changePasswordRouter(t, db)
+	resp := authedCookie(t, "alice")
 
 	post := func(body string) *httptest.ResponseRecorder {
 		req := httptest.NewRequest(http.MethodPost, "/admin/settings/password/",
@@ -418,5 +412,100 @@ func TestChangePasswordValidation(t *testing.T) {
 	}
 	if rec := post("new_password=firstpass&confirm_password=secondpass"); rec.Code != http.StatusBadRequest {
 		t.Errorf("mismatched passwords: status = %d, want %d", rec.Code, http.StatusBadRequest)
+	}
+}
+
+func newTestRouterWithPages(db *sql.DB) http.Handler {
+	a := &web.Admin{DB: db, Tpl: testRenderer}
+	r := chi.NewRouter()
+	r.Post("/admin/api/pages/", a.CreatePage)
+	r.Get("/admin/api/pages/", a.ListPages) // <-- the missing line
+	r.Get("/api/pages/{id}/", a.GetPageAPI)
+	r.Put("/api/pages/{id}/", a.UpdatePage)
+	r.Delete("/api/pages/{id}/", a.DeletePage)
+	r.Get("/admin/pages/table/", a.PagesTable)
+	return r
+}
+
+func TestPageEditorRoundTrip(t *testing.T) {
+	h := newTestRouterWithPages(newHandlerTestDB(t))
+
+	create := doJSON(t, h, http.MethodPost, "/admin/api/pages/",
+		map[string]string{"title": "About Us", "content": "<p>v1</p>"})
+	if create.Code != http.StatusCreated {
+		t.Fatalf("create status = %d, body: %s", create.Code, create.Body.String())
+	}
+	var created struct {
+		Status string `json:"status"`
+	}
+	if err := json.Unmarshal(create.Body.Bytes(), &created); err != nil {
+		t.Fatalf("decoding create: %v", err)
+	}
+
+	// The list API is how the editor discovers the id (Create returns only
+	// status); fetch it, then exercise get-one, update and get again.
+	list := doJSON(t, h, http.MethodGet, "/admin/api/pages/", nil)
+	var pages []struct {
+		ID      int64  `json:"id"`
+		Title   string `json:"title"`
+		Slug    string `json:"slug"`
+		Content string `json:"content"`
+	}
+	if err := json.Unmarshal(list.Body.Bytes(), &pages); err != nil || len(pages) != 1 {
+		t.Fatalf("listing pages: %v (%d pages)", err, len(pages))
+	}
+	id := pages[0].ID
+	if pages[0].Slug != "about-us" {
+		t.Errorf("derived slug = %q, want about-us", pages[0].Slug)
+	}
+	rec := doJSON(t, h, http.MethodGet, "/admin/pages/table/", nil)
+	if !strings.Contains(rec.Body.String(), "About Us") {
+		t.Error("table fragment does not render created page")
+	}
+
+	got := doJSON(t, h, http.MethodGet, fmt.Sprintf("/api/pages/%d/", id), nil)
+	if got.Code != http.StatusOK {
+		t.Fatalf("get status = %d, want %d", got.Code, http.StatusOK)
+	}
+	var page struct {
+		Content string `json:"content"`
+	}
+	if err := json.Unmarshal(got.Body.Bytes(), &page); err != nil {
+		t.Fatalf("decoding page: %v", err)
+	}
+	if page.Content != "<p>v1</p>" {
+		t.Errorf("content = %q, want <p>v1</p>", page.Content)
+	}
+
+	upd := doJSON(t, h, http.MethodPut, fmt.Sprintf("/api/pages/%d/", id),
+		map[string]string{"title": "About Us", "content": "<p>v2</p>"})
+	if upd.Code != http.StatusOK {
+		t.Fatalf("update status = %d, body: %s", upd.Code, upd.Body.String())
+	}
+	got2 := doJSON(t, h, http.MethodGet, fmt.Sprintf("/api/pages/%d/", id), nil)
+	var page2 struct {
+		Content string `json:"content"`
+	}
+	json.Unmarshal(got2.Body.Bytes(), &page2)
+	if page2.Content != "<p>v2</p>" {
+		t.Errorf("content after update = %q, want <p>v2</p>", page2.Content)
+	}
+
+	del := doJSON(t, h, http.MethodDelete, fmt.Sprintf("/api/pages/%d/", id), nil)
+	if del.Code != http.StatusNoContent {
+		t.Errorf("delete status = %d, want %d", del.Code, http.StatusNoContent)
+	}
+	final := doJSON(t, h, http.MethodGet, fmt.Sprintf("/api/pages/%d/", id), nil)
+	if final.Code != http.StatusNotFound {
+		t.Errorf("deleted page still fetchable: status = %d, want %d", final.Code, http.StatusNotFound)
+	}
+}
+
+func TestUpdatePageInvalidID(t *testing.T) {
+	h := newTestRouterWithPages(newHandlerTestDB(t))
+	rec := doJSON(t, h, http.MethodPut, "/api/pages/notanumber/",
+		map[string]string{"title": "x"})
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusBadRequest)
 	}
 }

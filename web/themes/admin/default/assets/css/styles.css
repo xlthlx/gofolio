@@ -87,6 +87,11 @@ header nav a {
     color: #333;
 }
 
+.btn-error {
+    background: #791b1b;
+    color: white;
+}
+
 .hidden {
     display: none !important;
 }
@@ -125,4 +130,32 @@ input, select, textarea {
 .loading {
     text-align: center;
     padding: 2rem;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.stat-card .value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #6d4aff;
+}
+
+.recent-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #eee;
 }

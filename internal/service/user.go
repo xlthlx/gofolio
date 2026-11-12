@@ -93,7 +93,7 @@ func ChangePassword(db *sql.DB, userID, newPassword string) error {
 	if err != nil {
 		return err
 	}
-	res, err := db.Exec(`UPDATE users SET password_hash = ? WHERE id = ?`,
+	res, err := db.Exec(`UPDATE users SET password_hash = ? WHERE username = ?`,
 		hash, userID)
 	if err != nil {
 		return err

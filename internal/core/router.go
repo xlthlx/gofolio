@@ -57,9 +57,15 @@ func New(db *sql.DB, tpl *web.Renderer) http.Handler {
 		r.Get("/posts/", admin.PostsPage)
 		r.Get("/posts/table/", admin.PostsTable)
 		r.Get("/posts/new/", admin.View("editor.html"))
+		r.Get("/api/posts/{id}/", admin.GetPostAPI)
 		r.Get("/posts/{id}/edit/", admin.View("editor.html"))
 		r.Get("/pages/", admin.PagesPage)
 		r.Get("/pages/table/", admin.PagesTable)
+		r.Get("/pages/new/", admin.PageEditor())
+		r.Get("/pages/{id}/edit/", admin.PageEditor())
+		r.Get("/api/pages/{id}/", admin.GetPageAPI)
+		r.Put("/api/pages/{id}/", admin.UpdatePage)
+		r.Delete("/api/pages/{id}/", admin.DeletePage)
 		r.Get("/settings/", admin.SettingsPage)
 		r.Post("/settings/password/", admin.ChangePassword)
 
@@ -69,6 +75,7 @@ func New(db *sql.DB, tpl *web.Renderer) http.Handler {
 		r.Delete("/api/posts/{id}/", admin.DeletePost)
 		r.Get("/api/pages/", admin.ListPages)
 		r.Post("/api/pages/", admin.CreatePage)
+		r.Get("/api/posts/{id}/", admin.GetPostAPI)
 	})
 
 	r.Get("/admin/login/", admin.LoginGet)
