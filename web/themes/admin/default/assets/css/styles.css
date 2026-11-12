@@ -1,92 +1,128 @@
 * {
-	margin: 0;
-	padding: 0;
-	box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 body {
-	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-	line-height: 1.6;
-	color: #333;
-	background-color: #f5f5f5;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f5f5f5;
 }
 
 .container {
-	max-width: 1200px;
-	margin: 0 auto;
-	padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
 }
 
 header {
-	background: #6d4aff;
-	color: white;
-	padding: 1rem 0;
-	margin-bottom: 2rem;
+    background: #6d4aff;
+    color: white;
+    padding: 1rem 0;
+    margin-bottom: 2rem;
 }
 
 header nav {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 header nav h1 {
-	font-size: 1.5rem;
+    font-size: 1.5rem;
 }
 
 header nav ul {
-	list-style: none;
-	display: flex;
-	gap: 1rem;
+    list-style: none;
+    display: flex;
+    gap: 1rem;
 }
 
 header nav a {
-	color: white;
-	text-decoration: none;
+    color: white;
+    text-decoration: none;
 }
 
 .post-list {
-	display: grid;
-	gap: 2rem;
+    display: grid;
+    gap: 2rem;
 }
 
 .post-card {
-	background: white;
-	border-radius: 8px;
-	padding: 1.5rem;
-	box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .post-card h2 {
-	margin-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
 }
 
 .post-meta {
-	color: #666;
-	font-size: 0.9rem;
-	margin-bottom: 1rem;
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
 }
 
 .btn {
-	display: inline-block;
-	padding: 0.5rem 1rem;
-	border-radius: 4px;
-	text-decoration: none;
-	cursor: pointer;
-	border: none;
-	font-size: 1rem;
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    font-size: 1rem;
 }
 
 .btn-primary {
-	background: #6d4aff;
-	color: white;
+    background: #6d4aff;
+    color: white;
 }
 
 .btn-secondary {
-	background: #eee;
-	color: #333;
+    background: #eee;
+    color: #333;
 }
 
 .hidden {
-	display: none !important;
+    display: none !important;
+}
+
+.editor-form {
+    max-width: 800px;
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+}
+
+input, select, textarea {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.loading {
+    text-align: center;
+    padding: 2rem;
 }
