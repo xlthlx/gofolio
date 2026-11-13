@@ -7,6 +7,7 @@ import (
 
 	"gofolio/internal/handler/middleware"
 	"gofolio/internal/model"
+	"gofolio/internal/store"
 	"gofolio/pkg/util"
 )
 
@@ -60,17 +61,10 @@ func Login(db *sql.DB, w http.ResponseWriter, r *http.Request, username, passwor
 	return middleware.SetSession(w, r, user.Username, user.IsAdmin)
 }
 
+// InitUsersTable is a thin alias for store.Migrate, which now owns every
+// table, users included. Prefer calling store.Migrate directly in new code.
 func InitUsersTable(db *sql.DB) error {
-	_, err := db.Exec(`
-	CREATE TABLE IF NOT EXISTS users (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		username TEXT UNIQUE NOT NULL,
-		email TEXT UNIQUE NOT NULL,
-		password_hash TEXT NOT NULL,
-		is_admin INTEGER DEFAULT 0,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	)`)
-	return err
+	return store.Migrate(db)
 }
 
 func CreateDefaultAdmin(db *sql.DB) error {

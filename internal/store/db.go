@@ -37,6 +37,17 @@ CREATE TABLE IF NOT EXISTS pages (
 `
 
 func Migrate(db *sql.DB) error {
+	if _, err := db.Exec(`
+CREATE TABLE IF NOT EXISTS users (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	username TEXT UNIQUE NOT NULL,
+	email TEXT UNIQUE NOT NULL,
+	password_hash TEXT NOT NULL,
+	is_admin INTEGER DEFAULT 0,
+	created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)`); err != nil {
+		return err
+	}
 	_, err := db.Exec(migrations)
 	return err
 }
