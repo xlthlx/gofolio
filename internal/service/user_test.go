@@ -96,7 +96,7 @@ func TestCreateDefaultAdminOnlyOnce(t *testing.T) {
 
 func TestLoginSuccessSetsCookie(t *testing.T) {
 	db := newTestDB(t)
-	middleware.Init([]byte("test-secret-key-for-service-tests"))
+	sess := middleware.NewSessions([]byte("test-secret-key-for-service-tests"))
 
 	if err := CreateDefaultAdmin(db); err != nil {
 		t.Fatalf("CreateDefaultAdmin returned error: %v", err)
@@ -105,7 +105,7 @@ func TestLoginSuccessSetsCookie(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/login/", nil)
 	rec := httptest.NewRecorder()
 
-	if err := Login(db, rec, req, "admin", "admin123"); err != nil {
+	if err := Login(db, sess, rec, req, "admin", "admin123"); err != nil {
 		t.Fatalf("Login returned error: %v", err)
 	}
 
@@ -116,7 +116,7 @@ func TestLoginSuccessSetsCookie(t *testing.T) {
 
 func TestLoginWrongPassword(t *testing.T) {
 	db := newTestDB(t)
-	middleware.Init([]byte("test-secret-key-for-service-tests"))
+	sess := middleware.NewSessions([]byte("test-secret-key-for-service-tests"))
 
 	if err := CreateDefaultAdmin(db); err != nil {
 		t.Fatalf("CreateDefaultAdmin returned error: %v", err)
@@ -125,7 +125,7 @@ func TestLoginWrongPassword(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/login/", nil)
 	rec := httptest.NewRecorder()
 
-	if err := Login(db, rec, req, "admin", "wrong-password"); err == nil {
+	if err := Login(db, sess, rec, req, "admin", "wrong-password"); err == nil {
 		t.Error("Login with wrong password should return error")
 	}
 	if len(rec.Result().Cookies()) != 0 {
@@ -135,12 +135,12 @@ func TestLoginWrongPassword(t *testing.T) {
 
 func TestLoginUnknownUser(t *testing.T) {
 	db := newTestDB(t)
-	middleware.Init([]byte("test-secret-key-for-service-tests"))
+	sess := middleware.NewSessions([]byte("test-secret-key-for-service-tests"))
 
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/login/", nil)
 	rec := httptest.NewRecorder()
 
-	if err := Login(db, rec, req, "nobody", "whatever"); err == nil {
+	if err := Login(db, sess, rec, req, "nobody", "whatever"); err == nil {
 		t.Error("Login for unknown user should return error")
 	}
 }

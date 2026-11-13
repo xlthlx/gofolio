@@ -8,14 +8,16 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"gofolio/internal/handler/middleware"
 	"gofolio/internal/model"
 	"gofolio/internal/store"
 )
 
 // Admin handles the authenticated admin panel: pages, fragments and CRUD.
 type Admin struct {
-	DB  *sql.DB
-	Tpl *Renderer
+	DB   *sql.DB
+	Tpl  *Renderer
+	Sess *middleware.Sessions
 }
 
 // View serves a static admin template (used by pages not yet migrated).

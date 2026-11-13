@@ -52,13 +52,13 @@ func main() {
 		}
 		authSecret = []byte(secret)
 	}
-	middleware.Init(authSecret)
 
 	tpl := web.MustRenderer(web.FindAdminThemeDir())
+	sess := middleware.NewSessions(authSecret)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
-		Handler:      core.New(db, tpl),
+		Handler:      core.New(db, tpl, sess),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,

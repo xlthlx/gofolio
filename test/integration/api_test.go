@@ -37,10 +37,10 @@ func newTestServer(t *testing.T) (string, *http.Client) {
 	if err := service.CreateDefaultAdmin(db); err != nil {
 		t.Fatalf("CreateDefaultAdmin: %v", err)
 	}
-	middleware.Init([]byte("integration-test-secret"))
+	sess := middleware.NewSessions([]byte("integration-test-secret"))
 
 	tpl := web.MustRenderer(web.FindAdminThemeDir())
-	ts := httptest.NewServer(core.New(db, tpl))
+	ts := httptest.NewServer(core.New(db, tpl, sess))
 	t.Cleanup(ts.Close)
 
 	jar, err := cookiejar.New(nil)
