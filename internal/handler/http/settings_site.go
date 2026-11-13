@@ -30,7 +30,7 @@ func (h Admin) settingsData() SettingsData {
 // SiteSettingsGet renders the site-settings form with current values.
 func (h Admin) SiteSettingsGet(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := h.Tpl.SiteSettings(w, h.settingsData()); err != nil {
+	if err := h.Tpl.SettingsPage(w, h.settingsData()); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
