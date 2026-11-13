@@ -68,6 +68,8 @@ func New(db *sql.DB, tpl *web.Renderer, sess *middleware.Sessions) http.Handler 
 		r.Delete("/api/pages/{id}/", admin.DeletePage)
 		r.Get("/settings/", admin.SettingsPage)
 		r.Post("/settings/password/", admin.ChangePassword)
+		r.Get("/admin/settings/site/", admin.SiteSettingsGet)
+		r.Post("/admin/settings/site/", admin.SiteSettingsPost)
 
 		r.Get("/api/posts/", admin.ListPosts)
 		r.Post("/api/posts/", admin.CreatePost)

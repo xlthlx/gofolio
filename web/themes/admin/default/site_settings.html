@@ -1,0 +1,13 @@
+{{define "site_settings"}}
+<form method="post" action="/admin/settings/site/">
+    <label for="site_title">Site title</label>
+    <input type="text" id="site_title" name="site_title"
+           value="{{with .Values}}{{index.site_title}}{{end}}">
+
+    <label for="tagline">Tagline</label>
+    <input type="text" id="tagline" name="tagline"
+           value="{{with .Values}}{{index.tagline}}{{end}}">
+
+    <button type="submit" class="btn btn-primary">Save</button>
+</form>
+{{end}}
