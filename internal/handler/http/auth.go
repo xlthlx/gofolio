@@ -11,7 +11,10 @@ import (
 )
 
 // Auth handles the public authentication endpoints.
-type Auth struct{ DB *sql.DB }
+type Auth struct {
+	DB   *sql.DB
+	Sess *middleware.Sessions
+}
 
 func (h Auth) Login(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
@@ -30,7 +33,7 @@ func (h Auth) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := service.Login(h.DB, w, r, creds.Username, creds.Password); err != nil {
+	if err := service.Login(h.DB, h.Sess, w, r, creds.Username, creds.Password); err != nil {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "Invalid credentials"})
 		return
 	}
@@ -38,7 +41,7 @@ func (h Auth) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Auth) Logout(w http.ResponseWriter, r *http.Request) {
-	if err := middleware.ClearSession(w, r); err != nil {
+	if err := h.Sess.ClearSession(w, r); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -46,5 +49,5 @@ func (h Auth) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Auth) Check(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]bool{"authenticated": middleware.IsAuthenticated(r)})
+	writeJSON(w, http.StatusOK, map[string]bool{"authenticated": h.Sess.IsAuthenticated(r)})
 }

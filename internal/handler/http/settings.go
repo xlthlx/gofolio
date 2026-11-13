@@ -3,7 +3,6 @@ package web
 import (
 	"net/http"
 
-	"gofolio/internal/handler/middleware"
 	"gofolio/internal/service"
 )
 
@@ -42,7 +41,7 @@ func (h Admin) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := middleware.GetUserID(r)
+	userID := h.Sess.GetUserID(r)
 	if userID == "" {
 		failure("No active session.", http.StatusUnauthorized)
 		return

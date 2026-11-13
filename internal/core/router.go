@@ -14,7 +14,7 @@ import (
 )
 
 // New builds the full application router.
-func New(db *sql.DB, tpl *web.Renderer) http.Handler {
+func New(db *sql.DB, tpl *web.Renderer, sess *middleware.Sessions) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(chimw.Logger)
@@ -37,8 +37,8 @@ func New(db *sql.DB, tpl *web.Renderer) http.Handler {
 	})
 
 	pub := &web.Public{DB: db}
-	admin := &web.Admin{DB: db, Tpl: tpl}
-	authH := &web.Auth{DB: db}
+	admin := &web.Admin{DB: db, Tpl: tpl, Sess: sess}
+	authH := &web.Auth{DB: db, Sess: sess}
 
 	// Public routes
 	r.Get("/", pub.ListPosts)
@@ -49,7 +49,7 @@ func New(db *sql.DB, tpl *web.Renderer) http.Handler {
 
 	// Admin routes with authentication
 	r.Route("/admin/", func(r chi.Router) {
-		r.Use(middleware.RequireAuth)
+		r.Use(middleware.RequireAuth(sess))
 
 		r.Get("/", admin.DashboardPage)
 		r.Get("/dashboard/", admin.DashboardPage)

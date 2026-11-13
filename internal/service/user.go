@@ -3,12 +3,11 @@ package service
 import (
 	"database/sql"
 	"errors"
-	"net/http"
-
 	"gofolio/internal/handler/middleware"
 	"gofolio/internal/model"
 	"gofolio/internal/store"
 	"gofolio/pkg/util"
+	"net/http"
 )
 
 func CreateUser(db *sql.DB, username, email, password string, isAdmin bool) (int64, error) {
@@ -48,7 +47,9 @@ func GetUserByUsername(db *sql.DB, username string) (*model.User, error) {
 	return &u, nil
 }
 
-func Login(db *sql.DB, w http.ResponseWriter, r *http.Request, username, password string) error {
+func Login(db *sql.DB, sess *middleware.Sessions, w http.ResponseWriter,
+	r *http.Request, username, password string) error {
+
 	user, err := GetUserByUsername(db, username)
 	if err != nil {
 		return err
@@ -58,7 +59,7 @@ func Login(db *sql.DB, w http.ResponseWriter, r *http.Request, username, passwor
 		return errors.New("invalid credentials")
 	}
 
-	return middleware.SetSession(w, r, user.Username, user.IsAdmin)
+	return sess.SetSession(w, r, user.Username, user.IsAdmin)
 }
 
 // InitUsersTable is a thin alias for store.Migrate, which now owns every

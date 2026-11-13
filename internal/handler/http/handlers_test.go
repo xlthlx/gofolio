@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 
@@ -21,17 +20,11 @@ import (
 	"gofolio/pkg/util"
 )
 
-// TestMain initializes the session store once for the whole package. Every
-// test that touches cookies or login relies on this; without it the first
-// session call segfaults on a nil store.
-func TestMain(m *testing.M) {
-	middleware.Init([]byte("unit-test-secret"))
-	os.Exit(m.Run())
-}
-
 // testRenderer is shared: the admin templates are parsed once, from the repo
 // root (the finder walks up from this package's directory).
 var testRenderer = web.MustRenderer(web.FindAdminThemeDir())
+
+var testSess = middleware.NewSessions([]byte("unit-test-secret"))
 
 // newHandlerTestDB creates a throwaway database with ALL tables the handler
 // layer can touch — content and users — so any test can seed anything.
@@ -55,7 +48,7 @@ func newHandlerTestDB(t *testing.T) *sql.DB {
 // newTestRouter is the minimal-but-complete route surface the unit tests
 // exercise, mirroring the production router.
 func newTestRouter(db *sql.DB) http.Handler {
-	a := &web.Admin{DB: db, Tpl: testRenderer}
+	a := &web.Admin{DB: db, Tpl: testRenderer, Sess: testSess}
 	p := &web.Public{DB: db}
 
 	r := chi.NewRouter()
@@ -277,7 +270,7 @@ func TestLoginPostHTMXSuccess(t *testing.T) {
 		t.Fatalf("seeding admin: %v", err)
 	}
 
-	a := &web.Admin{DB: db, Tpl: testRenderer}
+	a := &web.Admin{DB: db, Tpl: testRenderer, Sess: testSess}
 	r := chi.NewRouter()
 	r.Post("/admin/login/", a.LoginPost)
 
@@ -305,7 +298,7 @@ func TestLoginPostHTMXFailureReturnsFragment(t *testing.T) {
 		t.Fatalf("seeding admin: %v", err)
 	}
 
-	a := &web.Admin{DB: db, Tpl: testRenderer}
+	a := &web.Admin{DB: db, Tpl: testRenderer, Sess: testSess}
 	r := chi.NewRouter()
 	r.Post("/admin/login/", a.LoginPost)
 
@@ -336,7 +329,7 @@ func changePasswordRouter(t *testing.T, db *sql.DB) http.Handler {
 	if _, err := service.CreateUser(db, "alice", "alice@localhost", "oldpassword", false); err != nil {
 		t.Fatalf("seeding user: %v", err)
 	}
-	a := &web.Admin{DB: db, Tpl: testRenderer}
+	a := &web.Admin{DB: db, Tpl: testRenderer, Sess: testSess}
 	r := chi.NewRouter()
 	r.Post("/admin/settings/password/", a.ChangePassword)
 	return r
@@ -348,7 +341,7 @@ func authedCookie(t *testing.T, userID string) *http.Response {
 	t.Helper()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
-	if err := middleware.SetSession(rec, req, userID, true); err != nil {
+	if err := testSess.SetSession(rec, req, userID, true); err != nil {
 		t.Fatalf("SetSession: %v", err)
 	}
 	return rec.Result()
@@ -416,7 +409,7 @@ func TestChangePasswordValidation(t *testing.T) {
 }
 
 func newTestRouterWithPages(db *sql.DB) http.Handler {
-	a := &web.Admin{DB: db, Tpl: testRenderer}
+	a := &web.Admin{DB: db, Tpl: testRenderer, Sess: testSess}
 	r := chi.NewRouter()
 	r.Post("/admin/api/pages/", a.CreatePage)
 	r.Get("/admin/api/pages/", a.ListPages) // <-- the missing line

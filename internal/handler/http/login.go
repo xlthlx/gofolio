@@ -3,7 +3,6 @@ package web
 import (
 	"net/http"
 
-	"gofolio/internal/handler/middleware"
 	"gofolio/internal/service"
 )
 
@@ -16,7 +15,7 @@ type loginData struct {
 // sent straight to the dashboard. This route also fixes a long-standing gap:
 // RequireAuth always redirected here, but the page was never routed.
 func (h Admin) LoginGet(w http.ResponseWriter, r *http.Request) {
-	if middleware.IsAuthenticated(r) {
+	if h.Sess.IsAuthenticated(r) {
 		http.Redirect(w, r, "/admin/", http.StatusSeeOther)
 		return
 	}
@@ -39,7 +38,7 @@ func (h Admin) LoginPost(w http.ResponseWriter, r *http.Request) {
 
 	hx := r.Header.Get("HX-Request") == "true"
 
-	if err := service.Login(h.DB, w, r, username, password); err != nil {
+	if err := service.Login(h.DB, h.Sess, w, r, username, password); err != nil {
 		if hx {
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.WriteHeader(http.StatusUnauthorized)

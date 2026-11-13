@@ -8,6 +8,8 @@ import (
 
 const testSecret = "test-secret-key-for-unit-tests"
 
+var testSessions = NewSessions([]byte(testSecret))
+
 func newSessionRequest(t *testing.T) (*httptest.ResponseRecorder, *http.Request) {
 	t.Helper()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -16,10 +18,8 @@ func newSessionRequest(t *testing.T) (*httptest.ResponseRecorder, *http.Request)
 }
 
 func TestSetSessionRoundTrip(t *testing.T) {
-	Init([]byte(testSecret))
-
 	rec, req := newSessionRequest(t)
-	if err := SetSession(rec, req, "alice", true); err != nil {
+	if err := testSessions.SetSession(rec, req, "alice", true); err != nil {
 		t.Fatalf("SetSession returned error: %v", err)
 	}
 
@@ -46,19 +46,15 @@ func TestSetSessionRoundTrip(t *testing.T) {
 }
 
 func TestIsAuthenticatedWithoutSession(t *testing.T) {
-	Init([]byte(testSecret))
-
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	if IsAuthenticated(req) {
+	if testSessions.IsAuthenticated(req) {
 		t.Error("IsAuthenticated = true for a request with no session cookie, want false")
 	}
 }
 
 func TestIsAuthenticatedWithSession(t *testing.T) {
-	Init([]byte(testSecret))
-
 	rec, req := newSessionRequest(t)
-	if err := SetSession(rec, req, "alice", true); err != nil {
+	if err := testSessions.SetSession(rec, req, "alice", true); err != nil {
 		t.Fatalf("SetSession returned error: %v", err)
 	}
 
@@ -67,21 +63,19 @@ func TestIsAuthenticatedWithSession(t *testing.T) {
 		authReq.AddCookie(c)
 	}
 
-	if !IsAuthenticated(authReq) {
+	if !testSessions.IsAuthenticated(authReq) {
 		t.Error("IsAuthenticated = false after SetSession, want true")
 	}
 }
 
 func TestClearSession(t *testing.T) {
-	Init([]byte(testSecret))
-
 	rec, req := newSessionRequest(t)
-	if err := SetSession(rec, req, "alice", true); err != nil {
+	if err := testSessions.SetSession(rec, req, "alice", true); err != nil {
 		t.Fatalf("SetSession returned error: %v", err)
 	}
 
 	clearRec := httptest.NewRecorder()
-	if err := ClearSession(clearRec, req); err != nil {
+	if err := testSessions.ClearSession(clearRec, req); err != nil {
 		t.Fatalf("ClearSession returned error: %v", err)
 	}
 
@@ -120,9 +114,7 @@ func TestGenerateSecureToken(t *testing.T) {
 }
 
 func TestRequireAuthRedirectsUnauthenticated(t *testing.T) {
-	Init([]byte(testSecret))
-
-	handler := RequireAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := RequireAuth(testSessions)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Error("next handler should not be called for unauthenticated request")
 	}))
 
@@ -139,14 +131,12 @@ func TestRequireAuthRedirectsUnauthenticated(t *testing.T) {
 }
 
 func TestRequireAuthPassesAuthenticated(t *testing.T) {
-	Init([]byte(testSecret))
-
 	loginRec, loginReq := newSessionRequest(t)
-	if err := SetSession(loginRec, loginReq, "alice", true); err != nil {
+	if err := testSessions.SetSession(loginRec, loginReq, "alice", true); err != nil {
 		t.Fatalf("SetSession returned error: %v", err)
 	}
 
-	handler := RequireAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := RequireAuth(testSessions)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
