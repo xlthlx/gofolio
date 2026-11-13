@@ -23,9 +23,9 @@
 
 	<section>
 		<h3>Site</h3>
-		<p>Site title: goFolio</p>
-		<p>Tagline: A simple Go CMS</p>
-		<p><small>These values are fixed until site settings gain database backing.</small></p>
+		<p>Site title: {{with .Values}}{{with index . "site_title"}}{{.}}{{else}}goFolio{{end}}{{end}}</p>
+		<p>Tagline: {{with .Values}}{{with index . "tagline"}}{{.}}{{else}}A simple Go CMS{{end}}{{end}}</p>
+		{{template "site_settings" .}}
 	</section>
 
 	<section>

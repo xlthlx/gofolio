@@ -48,6 +48,15 @@ CREATE TABLE IF NOT EXISTS users (
 )`); err != nil {
 		return err
 	}
+
+	if _, err := db.Exec(`
+	CREATE TABLE IF NOT EXISTS settings (
+		key TEXT PRIMARY KEY,
+		value TEXT NOT NULL
+	)`); err != nil {
+		return err
+	}
+
 	_, err := db.Exec(migrations)
 	return err
 }

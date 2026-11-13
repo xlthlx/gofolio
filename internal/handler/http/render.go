@@ -11,11 +11,12 @@ import (
 // fragments. HTMX needs server-rendered HTML; this is the single place that
 // produces it.
 type Renderer struct {
-	posts     *template.Template
-	pages     *template.Template
-	settings  *template.Template
-	dashboard *template.Template
-	login     *template.Template
+	posts        *template.Template
+	pages        *template.Template
+	settings     *template.Template
+	siteSettings *template.Template
+	dashboard    *template.Template
+	login        *template.Template
 }
 
 // FindAdminThemeDir locates the admin theme directory. It honours the
@@ -75,8 +76,15 @@ func NewRenderer(adminThemeDir string) (*Renderer, error) {
 	if err != nil {
 		return nil, err
 	}
+	siteSettings, err := template.ParseFiles(
+		filepath.Join(adminThemeDir, "settings.html"),
+		filepath.Join(adminThemeDir, "site_settings.html"),
+	)
+	if err != nil {
+		return nil, err
+	}
 	return &Renderer{posts: posts, pages: pages, settings: settings,
-		dashboard: dashboard, login: login}, nil
+		dashboard: dashboard, login: login, siteSettings: siteSettings}, nil
 }
 
 // MustRenderer is NewRenderer, panicking on failure: a server that cannot
@@ -123,4 +131,9 @@ func (r *Renderer) LoginPage(w io.Writer, data interface{}) error {
 
 func (r *Renderer) LoginError(w io.Writer, data interface{}) error {
 	return r.login.ExecuteTemplate(w, "login_error", data)
+}
+
+// SiteSettings renders the site-settings form.
+func (r *Renderer) SiteSettings(w io.Writer, data interface{}) error {
+	return r.siteSettings.ExecuteTemplate(w, "site_settings.html", data)
 }
