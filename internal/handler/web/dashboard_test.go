@@ -9,7 +9,7 @@ import (
 func TestDashboardPageRendersStats(t *testing.T) {
 	h := newTestRouter(newHandlerTestDB(t))
 
-	doJSON(t, h, http.MethodPost, "/api/posts/", map[string]string{"title": "Shown Here"})
+	doJSON(t, h, http.MethodPost, "/admin/api/posts/", map[string]string{"title": "Shown Here"})
 	rec := doJSON(t, h, http.MethodGet, "/admin/dashboard/", nil)
 
 	if rec.Code != http.StatusOK {

@@ -8,9 +8,7 @@ A lightweight, self-hosted content management system written in Go.
 
 goFolio is a minimal content management system built with simplicity as the guiding principle. It serves a public site with posts and pages, and provides an admin panel for managing content, all backed by a single SQLite database. There is no JavaScript framework, no external database server, and no configuration ceremony: build the binary, point it at a directory, and it runs.
 
-The public side exposes published posts and pages as JSON. The admin side offers a dashboard, a post editor, page management, and settings, protected by session-based authentication.
-
-The admin side offers a dashboard, a post editor, page management, and settings, protected by session-based authentication. Admin pages are rendered server-side and progressively enhanced with HTMX.
+The public site is server-rendered HTML: a homepage listing published posts, a view for each individual post and page, and the same content published as JSON under `/api` for anything that wants to consume it. Admin pages are rendered server-side as well, and both sides are progressively enhanced with HTMX.
 
 ## Admin architecture
 

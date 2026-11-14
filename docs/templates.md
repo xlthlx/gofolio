@@ -1,9 +1,10 @@
 # goFolio CMS – Templates and Rendering
 
-The admin panel is server-rendered HTML, progressively enhanced with HTMX, with
-two deliberate exceptions where JavaScript owns the page state. This document
-explains where templates live, how they are parsed, which fragments exist, and
-what to touch when adding a page.
+The public site and the admin panel are both server-rendered HTML, progressively
+enhanced with HTMX. The editors are the one place where JavaScript owns the page
+state, because a rich text field needs it. This document explains where templates
+live, how they are parsed, which fragments exist, and what to touch when adding a
+page.
 
 ## Themes and assets
 
@@ -14,13 +15,11 @@ so `/admin/static/*` maps to the admin theme and `/static/*` maps to the public
 theme. Nothing is embedded in the binary, which is why the Docker image copies
 `web/` next to the binary and why tests walk up the tree to find the repository.
 
-The assets that exist today are a stylesheet, the vendored HTMX build, a small
-`htmx-config.js` that adjusts how HTMX treats failed responses, the vendored
-TinyMCE distribution under `assets/js/tinymce/`, and empty `assets/img`
-directories. The public theme contains a stylesheet and
-`index.html`, but only its assets directory is reachable: `index.html` is not
-routed, and it links to `/static/styles.css`, a path that does not correspond to
-a file in the theme. Treat that file as a leftover rather than a working page.
+The assets that exist today are a stylesheet in each theme, the vendored HTMX
+build and a small `htmx-config.js` that adjusts how HTMX treats failed responses,
+the vendored TinyMCE distribution under the admin theme's `assets/js/tinymce/`,
+and empty `assets/img` directories. Both themes keep their own copy of the HTMX
+files so a theme stays self-contained.
 
 Styling leans on element selectors, with classes reserved for buttons and a few
 layout helpers. Pages are expected to stay semantic and to avoid icons.
@@ -28,7 +27,7 @@ layout helpers. Pages are expected to stay semantic and to avoid icons.
 ## Template groups
 
 `NewRenderer` in `internal/handler/web/render.go` parses the templates once at
-startup into five independent groups. A `{{template "name"}}` include can only
+startup into one group per page family. A `{{template "name"}}` include can only
 resolve to a file parsed into the same group, so groups are the unit to keep in
 mind when editing.
 
@@ -41,14 +40,16 @@ mind when editing.
 | login | `login.html` | `login_page`, `login_error` |
 | post editor | `editor.html` | `editor_page`, `editor_error` |
 | page editor | `page_editor.html` | `page_editor_page`, `page_editor_error` |
+| public site | `layout.html`, `index.html`, `post.html`, `page.html`, `not_found.html` | `site_head`, `site_nav`, `index_page`, `post_page`, `page_page`, `not_found_page` |
 
 `Renderer` exposes one method per thing it renders, such as `PostsPage`,
-`PostsRows`, `DashboardPage` and `LoginError`, and those are what handlers call.
+`PostsRows`, `DashboardPage` and `HomePage`, and those are what handlers call.
 `MustRenderer` parses the same groups but panics on failure, and `main` uses it
 so a theme that cannot be parsed stops the server instead of producing broken
-pages. `FindAdminThemeDir` resolves the directory, honouring `THEMES_DIR` first
-and otherwise walking up from the working directory until it finds
-`web/themes/admin/default/posts.html`.
+pages. It takes both theme directories, which `FindAdminThemeDir` and
+`FindPublicThemeDir` resolve, honouring `THEMES_DIR` first and otherwise walking
+up from the working directory until they find `web/themes/admin/default/posts.html`
+and `web/themes/public/default/index.html`.
 
 ## Fragments and HTMX
 
@@ -91,6 +92,29 @@ handlers answer accordingly, so the admin remains usable with JavaScript
 disabled. HTMX is always detected the same way, by checking whether the
 `HX-Request` header equals `true`.
 
+## The public site
+
+The public pages are `index.html` for the homepage, `post.html` for a single post,
+`page.html` for a single page, and `not_found.html` behind the themed 404. They
+share `layout.html`, which defines the `site_head` and `site_nav` partials, and
+they are parsed together as one group so those includes resolve.
+
+What they render comes from `SiteData` in `internal/handler/web/site.go`: the site
+title and tagline read from the settings table, whether the visitor is signed in,
+and the rows the page is about. The post and page bodies reach the template as
+HTML rather than as a string, because the editor stores markup and escaping it
+would print the markup instead of rendering the article. That is a deliberate
+exception to escaping, and it is only safe because the content comes from the
+authenticated admin. Anything else that ever feeds a public page, such as
+comments, would have to be sanitised before it got here.
+
+The body carries `hx-boost="true"`, which turns navigation within the theme into a
+body swap instead of a full page load. The links that leave the theme opt out with
+`hx-boost="false"`: the admin and login pages belong to the other theme, whose
+stylesheet a swap would not carry over, and logout answers with JSON rather than
+HTML. The themed 404 exists partly because of boosting, since a swap needs an HTML
+body and a stale link would otherwise appear to do nothing at all.
+
 ## The two editors
 
 The two editors follow the same pattern as every other admin page, with one
@@ -129,7 +153,7 @@ handler redirects to `/admin/settings/` with a `303`, which is the same page
 under its canonical URL. Either way the form writes only the whitelisted keys
 `site_title` and `tagline`, and empty values are skipped rather than saved.
 
-## Adding an admin page
+## Adding a page
 
 Three places have to change together. First, add the template file, and make sure
 any `{{template}}` include it uses is parsed into the same group. Second, add the
@@ -138,4 +162,6 @@ file to the matching `template.ParseFiles` call in `NewRenderer` and add a
 route in `internal/core/router.go` with a trailing slash. If the page needs the
 admin shell, the existing pages are the pattern to copy: the same header, nav and
 stylesheet link appear at the top of `posts.html`, `pages.html`, `settings.html`,
-`dashboard.html` and both editors.
+`dashboard.html` and both editors. A public page is simpler, because
+`layout.html` supplies the head and the navigation and the new file only has to
+define its body.

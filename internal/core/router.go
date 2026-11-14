@@ -35,16 +35,21 @@ func New(db *sql.DB, tpl *web.Renderer, sess *middleware.Sessions) http.Handler 
 		})
 	})
 
-	pub := &web.Public{DB: db}
+	pub := &web.Public{DB: db, Tpl: tpl, Sess: sess}
 	admin := &web.Admin{DB: db, Tpl: tpl, Sess: sess}
 	authH := &web.Auth{DB: db, Sess: sess}
 
-	// Public routes
-	r.Get("/", pub.ListPosts)
+	// Public site, rendered as HTML
+	r.Get("/", pub.HomePage)
 	r.Get("/healthz/", (&web.Health{DB: db}).Check)
-	r.Get("/posts/{slug}/", pub.GetPost)
-	r.Get("/pages/{slug}/", pub.GetPage)
+	r.Get("/posts/{slug}/", pub.PostPage)
+	r.Get("/pages/{slug}/", pub.PagePage)
 	r.Get("/static/*", web.ServeStatic)
+
+	// Public JSON API, the same content in machine-readable form
+	r.Get("/api/posts/", pub.ListPosts)
+	r.Get("/api/posts/{slug}/", pub.GetPost)
+	r.Get("/api/pages/{slug}/", pub.GetPage)
 
 	// Admin routes with authentication
 	r.Route("/admin/", func(r chi.Router) {

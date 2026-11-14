@@ -19,9 +19,9 @@ import (
 	"gofolio/internal/store"
 )
 
-// testRenderer is shared: the admin templates are parsed once, from the repo
-// root (the finder walks up from this package's directory).
-var testRenderer = web.MustRenderer(web.FindAdminThemeDir())
+// testRenderer is shared: the templates of both themes are parsed once, from
+// the repo root (the finder walks up from this package's directory).
+var testRenderer = web.MustRenderer(web.FindAdminThemeDir(), web.FindPublicThemeDir())
 
 var testSess = middleware.NewSessions([]byte("unit-test-secret"))
 
@@ -48,21 +48,28 @@ func newHandlerTestDB(t *testing.T) *sql.DB {
 // exercise, mirroring the production router.
 func newTestRouter(db *sql.DB) http.Handler {
 	a := &web.Admin{DB: db, Tpl: testRenderer, Sess: testSess}
-	p := &web.Public{DB: db}
+	p := &web.Public{DB: db, Tpl: testRenderer, Sess: testSess}
 	authH := &web.Auth{DB: db, Sess: testSess}
 
 	r := chi.NewRouter()
 
-	// Public
+	// Public site
 	r.Get("/healthz/", (&web.Health{DB: db}).Check)
-	r.Get("/posts/{slug}/", p.GetPost)
+	r.Get("/", p.HomePage)
+	r.Get("/posts/{slug}/", p.PostPage)
+	r.Get("/pages/{slug}/", p.PagePage)
 
-	// Posts API
-	r.Get("/api/posts/", a.ListPosts)
+	// Public JSON API
+	r.Get("/api/posts/", p.ListPosts)
+	r.Get("/api/posts/{slug}/", p.GetPost)
+	r.Get("/api/pages/{slug}/", p.GetPage)
+
+	// Admin posts API, at the same paths production uses
+	r.Get("/admin/api/posts/", a.ListPosts)
 	r.Get("/admin/api/posts/{id}/", a.GetPost)
-	r.Post("/api/posts/", a.CreatePost)
-	r.Put("/api/posts/{id}/", a.UpdatePost)
-	r.Delete("/api/posts/{id}/", a.DeletePost)
+	r.Post("/admin/api/posts/", a.CreatePost)
+	r.Put("/admin/api/posts/{id}/", a.UpdatePost)
+	r.Delete("/admin/api/posts/{id}/", a.DeletePost)
 
 	// Admin pages and fragments
 	r.Get("/admin/dashboard/", a.DashboardPage)

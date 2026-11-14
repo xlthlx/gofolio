@@ -22,16 +22,33 @@ reachable before a session exists.
 
 ## Public routes
 
+The public site is HTML, rendered by the handlers in `internal/handler/web/site.go`.
+
 | Method | Path | Behaviour |
 |---|---|---|
-| `GET` | `/` | JSON feed of published posts, newest first, wrapped as `{"posts":[...]}` |
-| `GET` | `/healthz/` | Liveness plus a database ping: `200 {"status":"ok"}` or `503` |
-| `GET` | `/posts/{slug}/` | One published post as JSON; a draft or unknown slug is a 404 |
-| `GET` | `/pages/{slug}/` | One page as JSON regardless of status; unknown slug is a 404 |
+| `GET` | `/` | Homepage listing published posts, newest first |
+| `GET` | `/posts/{slug}/` | One published post; a draft or unknown slug is a themed 404 |
+| `GET` | `/pages/{slug}/` | One page regardless of status; unknown slug is a themed 404 |
 | `GET` | `/static/*` | Files from `web/themes/public/default/` |
+| `GET` | `/healthz/` | Liveness plus a database ping: `200 {"status":"ok"}` or `503` |
 
-The homepage is the JSON feed. There is no HTML homepage route, and
-`web/themes/public/default/index.html` is not served by anything.
+Every public page reads the site title and tagline from the settings table,
+falling back to `goFolio` and `A simple Go CMS` when nothing is stored, and
+renders its navigation according to the session: a login link when signed out, and
+admin and logout links when signed in. Pages are rendered from scratch on every
+request, so an edit is visible immediately.
+
+The same content is also published as JSON, which is what the machine-readable
+clients use and what the tests exercise.
+
+| Method | Path | Behaviour |
+|---|---|---|
+| `GET` | `/api/posts/` | Published posts, newest first, wrapped as `{"posts":[...]}` |
+| `GET` | `/api/posts/{slug}/` | One published post as JSON; a draft or unknown slug is a `404` |
+| `GET` | `/api/pages/{slug}/` | One page as JSON regardless of status; unknown slug is a `404` |
+
+These moved under `/api/` when the site became HTML: a URL now has one
+representation, rather than switching on the `Accept` header.
 
 ## Admin pages and fragments
 

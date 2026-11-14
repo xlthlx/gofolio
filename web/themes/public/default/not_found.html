@@ -1,0 +1,16 @@
+{{define "not_found_page"}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "site_head" .}}
+<body hx-boost="true">
+{{template "site_nav" .}}
+<main class="container">
+	<article class="post-card">
+		<h1>Not found</h1>
+		<p>That page does not exist, or it is no longer published.</p>
+		<a class="btn btn-secondary" href="/">Back to all posts</a>
+	</article>
+</main>
+</body>
+</html>
+{{end}}

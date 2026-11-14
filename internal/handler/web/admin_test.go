@@ -14,7 +14,7 @@ import (
 func TestCreatePostRequiresTitle(t *testing.T) {
 	h := newTestRouter(newHandlerTestDB(t))
 
-	rec := doJSON(t, h, http.MethodPost, "/api/posts/", map[string]string{"title": ""})
+	rec := doJSON(t, h, http.MethodPost, "/admin/api/posts/", map[string]string{"title": ""})
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusBadRequest)
 	}
@@ -23,7 +23,7 @@ func TestCreatePostRequiresTitle(t *testing.T) {
 func TestCreatePostDefaultsSlugAndStatus(t *testing.T) {
 	h := newTestRouter(newHandlerTestDB(t))
 
-	rec := doJSON(t, h, http.MethodPost, "/api/posts/", map[string]string{"title": "Hello World"})
+	rec := doJSON(t, h, http.MethodPost, "/admin/api/posts/", map[string]string{"title": "Hello World"})
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d, want %d; body: %s", rec.Code, http.StatusCreated, rec.Body.String())
 	}
@@ -45,7 +45,7 @@ func TestCreatePostDefaultsSlugAndStatus(t *testing.T) {
 func TestUpdatePostInvalidID(t *testing.T) {
 	h := newTestRouter(newHandlerTestDB(t))
 
-	rec := doJSON(t, h, http.MethodPut, "/api/posts/notanumber/", map[string]string{"title": "x"})
+	rec := doJSON(t, h, http.MethodPut, "/admin/api/posts/notanumber/", map[string]string{"title": "x"})
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusBadRequest)
 	}
@@ -54,7 +54,7 @@ func TestUpdatePostInvalidID(t *testing.T) {
 func TestDeletePostRoundTrip(t *testing.T) {
 	h := newTestRouter(newHandlerTestDB(t))
 
-	create := doJSON(t, h, http.MethodPost, "/api/posts/", map[string]string{"title": "Doomed"})
+	create := doJSON(t, h, http.MethodPost, "/admin/api/posts/", map[string]string{"title": "Doomed"})
 	var created struct {
 		ID int64 `json:"id"`
 	}
@@ -62,7 +62,7 @@ func TestDeletePostRoundTrip(t *testing.T) {
 		t.Fatalf("decoding created post: %v", err)
 	}
 
-	del := doJSON(t, h, http.MethodDelete, fmt.Sprintf("/api/posts/%d/", created.ID), nil)
+	del := doJSON(t, h, http.MethodDelete, fmt.Sprintf("/admin/api/posts/%d/", created.ID), nil)
 	if del.Code != http.StatusNoContent {
 		t.Errorf("delete status = %d, want %d", del.Code, http.StatusNoContent)
 	}
@@ -79,7 +79,7 @@ func TestDeletePostRoundTrip(t *testing.T) {
 func TestDeletePostHTMXReturnsEmptyOK(t *testing.T) {
 	h := newTestRouter(newHandlerTestDB(t))
 
-	create := doJSON(t, h, http.MethodPost, "/api/posts/", map[string]string{"title": "Doomed"})
+	create := doJSON(t, h, http.MethodPost, "/admin/api/posts/", map[string]string{"title": "Doomed"})
 	var created struct {
 		ID int64 `json:"id"`
 	}
@@ -87,7 +87,7 @@ func TestDeletePostHTMXReturnsEmptyOK(t *testing.T) {
 		t.Fatalf("decoding created post: %v", err)
 	}
 
-	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/posts/%d/", created.ID), nil)
+	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/admin/api/posts/%d/", created.ID), nil)
 	req.Header.Set("HX-Request", "true")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
@@ -131,7 +131,7 @@ func TestDeletePageHTMXReturnsEmptyOK(t *testing.T) {
 func TestPostsTableFragment(t *testing.T) {
 	h := newTestRouter(newHandlerTestDB(t))
 
-	doJSON(t, h, http.MethodPost, "/api/posts/", map[string]string{"title": "Fragment Me"})
+	doJSON(t, h, http.MethodPost, "/admin/api/posts/", map[string]string{"title": "Fragment Me"})
 	rec := doJSON(t, h, http.MethodGet, "/admin/posts/table/", nil)
 
 	if rec.Code != http.StatusOK {

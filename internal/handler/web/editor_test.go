@@ -12,7 +12,7 @@ import (
 // createPost seeds a post through the JSON API and returns its id.
 func createPost(t *testing.T, h http.Handler, fields map[string]string) int64 {
 	t.Helper()
-	rec := doJSON(t, h, http.MethodPost, "/api/posts/", fields)
+	rec := doJSON(t, h, http.MethodPost, "/admin/api/posts/", fields)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("seeding post: status = %d, body: %s", rec.Code, rec.Body.String())
 	}

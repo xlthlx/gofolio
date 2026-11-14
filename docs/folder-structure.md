@@ -43,7 +43,8 @@ gofolio/
 │   │       ├── public.go         # Public JSON API
 │   │       ├── render.go         # Template parsing and the Renderer
 │   │       ├── settings.go       # Settings page and password change
-│   │       └── settings_site.go  # Site settings form
+│   │       ├── settings_site.go  # Site settings form
+│   │       └── site.go           # Public HTML views
 │   │
 │   ├── model/
 │   │   ├── content.go            # Post and Page structs
@@ -66,7 +67,7 @@ gofolio/
 ├── web/
 │   └── themes/
 │       ├── admin/default/        # Admin templates and static assets
-│       └── public/default/       # Public assets; index.html is not routed
+│       └── public/default/       # Public templates and static assets
 │
 ├── test/
 │   ├── fixtures/                 # Placeholder, empty

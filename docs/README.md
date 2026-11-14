@@ -12,7 +12,7 @@ detail it needs.
 |---|---|
 | [architecture.md](architecture.md) | Startup sequence, the packages and what each one owns, how a request travels from router to template, and what is deliberately absent |
 | [development.md](development.md) | Requirements, every `make` target, environment variables, vendoring, where new code goes, and common startup problems |
-| [routing.md](routing.md) | The complete route table, the middleware stack, the trailing slash rule, status code conventions, and the JSON API the admin tables use |
+| [routing.md](routing.md) | The complete route table, the middleware stack, the trailing slash rule, status code conventions, and where the JSON API lives |
 | [templates.md](templates.md) | Theme and asset layout, the five template groups, which fragments exist, how HTMX is wired, and what to touch when adding an admin page |
 | [database.md](database.md) | The schema, how migrations work without a version table, what each store does, and the side effects to expect from writes |
 | [authentication.md](authentication.md) | Password hashing, the default administrator, session cookies, both login flows, password changes, and the known security gaps |
@@ -39,12 +39,13 @@ migration constraints that shape schema changes.
 
 ## A short orientation
 
-The public side answers with JSON: the homepage is a feed of published posts, and
-posts and pages are fetchable by slug. There is no public HTML theme in use, so
-the public theme directory currently only serves assets. The admin side is the
-part with a user interface, reachable at `/admin/login/` and protected by a
-session cookie. Admin pages arrive as complete server-rendered HTML, including
-the two content editors, and the interactive parts, which are table row
-deletion, dashboard refresh, and login, password and editor feedback, are HTMX
-requests that receive fragments. The root [README](../README.md) covers the
-project itself at a higher level, including its license and credits.
+The public side is a server-rendered blog: the homepage lists published posts,
+`/posts/{slug}/` shows one, and `/pages/{slug}/` shows a page, with the same
+content also available as JSON under `/api`. Navigation inside those pages is
+boosted with HTMX, so it swaps the body instead of reloading. The admin side is
+reachable at `/admin/login/` and protected by a session cookie. Admin pages arrive
+as complete server-rendered HTML, including the two content editors, and the
+interactive parts, which are table row deletion, dashboard refresh, and login,
+password, editor and settings feedback, are HTMX requests that receive fragments.
+The root [README](../README.md) covers the project itself at a higher level,
+including its license and credits.

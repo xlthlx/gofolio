@@ -42,7 +42,7 @@ func newTestServer(t *testing.T) (string, *http.Client) {
 	}
 	sess := middleware.NewSessions([]byte("integration-test-secret"))
 
-	tpl := web.MustRenderer(web.FindAdminThemeDir())
+	tpl := web.MustRenderer(web.FindAdminThemeDir(), web.FindPublicThemeDir())
 	ts := httptest.NewServer(core.New(db, tpl, sess))
 	t.Cleanup(ts.Close)
 
@@ -155,18 +155,30 @@ func TestFullPostLifecycle(t *testing.T) {
 		t.Fatalf("created post = %+v, want slug launch-day, status published", created)
 	}
 
-	// Visible on the public homepage
+	// Published on the rendered homepage and in the JSON feed
+	resp = call(t, client, http.MethodGet, base+"/", nil)
+	homeBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("reading homepage: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("homepage: status = %d, want %d", resp.StatusCode, http.StatusOK)
+	}
+	if !strings.Contains(string(homeBody), "Launch Day") {
+		t.Error("homepage does not render the published post")
+	}
+
 	var home struct {
 		Posts []map[string]interface{} `json:"posts"`
 	}
-	decode(t, call(t, client, http.MethodGet, base+"/", nil), &home)
+	decode(t, call(t, client, http.MethodGet, base+"/api/posts/", nil), &home)
 	if len(home.Posts) != 1 {
-		t.Fatalf("homepage posts = %d, want 1", len(home.Posts))
+		t.Fatalf("feed posts = %d, want 1", len(home.Posts))
 	}
 
-	// Fetchable by slug
+	// Fetchable by slug, as JSON and as a rendered page
 	var fetched map[string]interface{}
-	decode(t, call(t, client, http.MethodGet, base+"/posts/launch-day/", nil), &fetched)
+	decode(t, call(t, client, http.MethodGet, base+"/api/posts/launch-day/", nil), &fetched)
 	if fetched["title"] != "Launch Day" {
 		t.Errorf("fetched title = %v, want Launch Day", fetched["title"])
 	}
@@ -177,10 +189,14 @@ func TestFullPostLifecycle(t *testing.T) {
 		t.Errorf("delete: status = %d, want %d", resp.StatusCode, http.StatusNoContent)
 	}
 
-	// Gone from the public API
+	// Gone from the public site, in both forms
 	resp = call(t, client, http.MethodGet, base+"/posts/launch-day/", nil)
 	if resp.StatusCode != http.StatusNotFound {
 		t.Errorf("after delete: status = %d, want %d", resp.StatusCode, http.StatusNotFound)
+	}
+	resp = call(t, client, http.MethodGet, base+"/api/posts/launch-day/", nil)
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("after delete: JSON status = %d, want %d", resp.StatusCode, http.StatusNotFound)
 	}
 }
 
@@ -228,8 +244,21 @@ func TestEditorFormsThroughRealRouter(t *testing.T) {
 		t.Errorf("HX-Redirect = %q, want /admin/posts/", loc)
 	}
 
+	// The saved post is published on the public site, rendered and as JSON.
+	resp = call(t, client, http.MethodGet, base+"/posts/served-editor/", nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("public post page: status = %d, want %d", resp.StatusCode, http.StatusOK)
+	}
+	page, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("reading public post page: %v", err)
+	}
+	if !strings.Contains(string(page), "Served Editor") {
+		t.Error("public post page does not render the saved post")
+	}
+
 	var fetched map[string]interface{}
-	decode(t, call(t, client, http.MethodGet, base+"/posts/served-editor/", nil), &fetched)
+	decode(t, call(t, client, http.MethodGet, base+"/api/posts/served-editor/", nil), &fetched)
 	if fetched["title"] != "Served Editor" {
 		t.Errorf("published title = %v, want Served Editor", fetched["title"])
 	}

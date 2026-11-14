@@ -1,0 +1,15 @@
+{{define "page_page"}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "site_head" .}}
+<body hx-boost="true">
+{{template "site_nav" .}}
+<main class="container">
+	<article class="post-card">
+		<h1>{{.Page.Title}}</h1>
+		{{.Content}}
+	</article>
+</main>
+</body>
+</html>
+{{end}}

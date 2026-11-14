@@ -1,0 +1,27 @@
+{{define "site_head"}}
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>{{if .PageTitle}}{{.PageTitle}} - {{end}}{{.Site.Title}}</title>
+	<link rel="stylesheet" href="/static/assets/css/styles.css">
+	<script src="/static/assets/js/htmx.min.js" defer></script>
+	<script src="/static/assets/js/htmx-config.js" defer></script>
+</head>
+{{end}}
+
+{{define "site_nav"}}
+<header>
+	<nav class="container">
+		<h1><a href="/">{{.Site.Title}}</a></h1>
+		<ul>
+			<li><a href="/">Home</a></li>
+			{{if .Authenticated}}
+			<li><a href="/admin/" hx-boost="false">Admin</a></li>
+			<li><a href="/api/auth/logout/" hx-boost="false">Logout</a></li>
+			{{else}}
+			<li><a href="/admin/login/" hx-boost="false">Login</a></li>
+			{{end}}
+		</ul>
+	</nav>
+</header>
+{{end}}

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"gofolio/internal/handler/web"
+	"gofolio/internal/model"
 )
 
 func TestFindAdminThemeDirLocatesTemplates(t *testing.T) {
@@ -28,20 +29,38 @@ func TestFindAdminThemeDirLocatesTemplates(t *testing.T) {
 }
 
 func TestMustRendererParsesTemplates(t *testing.T) {
-	if r := web.MustRenderer(web.FindAdminThemeDir()); r == nil {
+	if r := web.MustRenderer(web.FindAdminThemeDir(), web.FindPublicThemeDir()); r == nil {
 		t.Fatal("MustRenderer returned nil despite valid templates")
 	}
 }
 
-// TestAdminPagesLoadHTMXConfig checks that every page carrying a head loads the
-// config that makes HTMX swap error fragments, and loads it after HTMX itself.
-// The fragment templates have no head of their own, so they are covered by the
-// pages they are swapped into.
-func TestAdminPagesLoadHTMXConfig(t *testing.T) {
-	r := web.MustRenderer(web.FindAdminThemeDir())
+func TestFindPublicThemeDirLocatesTemplates(t *testing.T) {
+	dir := web.FindPublicThemeDir()
+	for _, name := range []string{
+		"layout.html", "index.html", "post.html", "page.html", "not_found.html",
+	} {
+		if _, err := os.Stat(filepath.Join(dir, name)); err != nil {
+			t.Errorf("public theme dir %q missing %s: %v", dir, name, err)
+		}
+	}
+	for _, name := range []string{"htmx.min.js", "htmx-config.js"} {
+		if _, err := os.Stat(filepath.Join(dir, "assets", "js", name)); err != nil {
+			t.Errorf("public theme dir %q missing asset %s: %v", dir, name, err)
+		}
+	}
+}
 
-	if _, err := os.Stat(filepath.Join(web.FindAdminThemeDir(), "assets", "js", "htmx-config.js")); err != nil {
-		t.Errorf("HTMX config asset is missing: %v", err)
+// TestPagesLoadHTMXAndConfig checks that every page with a head, in either
+// theme, loads HTMX and the config that makes it swap error fragments, and loads
+// the config after HTMX itself. The fragment templates have no head of their
+// own, so they are covered by the pages they are swapped into.
+func TestPagesLoadHTMXAndConfig(t *testing.T) {
+	r := web.MustRenderer(web.FindAdminThemeDir(), web.FindPublicThemeDir())
+
+	for _, themeDir := range []string{web.FindAdminThemeDir(), web.FindPublicThemeDir()} {
+		if _, err := os.Stat(filepath.Join(themeDir, "assets", "js", "htmx-config.js")); err != nil {
+			t.Errorf("%s is missing the HTMX config asset: %v", themeDir, err)
+		}
 	}
 
 	pages := map[string]struct {
@@ -55,6 +74,10 @@ func TestAdminPagesLoadHTMXConfig(t *testing.T) {
 		"login":       {r.LoginPage, nil},
 		"editor":      {r.PostEditorPage, web.EditorData{}},
 		"page editor": {r.PageEditorPage, web.PageEditorData{}},
+		"home":        {r.HomePage, web.SiteData{}},
+		"post view":   {r.PostPage, web.SiteData{Post: &model.Post{}}},
+		"page view":   {r.PagePage, web.SiteData{Page: &model.Page{}}},
+		"not found":   {r.NotFound, web.SiteData{}},
 	}
 
 	for name, page := range pages {
@@ -64,10 +87,10 @@ func TestAdminPagesLoadHTMXConfig(t *testing.T) {
 			continue
 		}
 		body := buf.String()
-		if !strings.Contains(body, "/admin/static/assets/js/htmx.min.js") {
+		if !strings.Contains(body, "htmx.min.js") {
 			t.Errorf("%s does not load HTMX", name)
 		}
-		if !strings.Contains(body, "/admin/static/assets/js/htmx-config.js") {
+		if !strings.Contains(body, "htmx-config.js") {
 			t.Errorf("%s does not load the HTMX config, so error fragments stay invisible", name)
 		}
 	}

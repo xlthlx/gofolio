@@ -87,13 +87,14 @@ composite literal parsing would be ambiguous.
 
 ## Deliberate omissions
 
-The following are absent by design rather than by accident. There is no public
-HTML rendering, so the homepage is a JSON feed and the public theme directory
-only serves assets. There is no migration version table, so schema changes have
-to be written to be safe on a database that already exists. There is no plugin
-or theme loading mechanism beyond the `THEMES_DIR` override. There is no media
-upload endpoint, despite the placeholder packages `pkg/database`, `pkg/logger`
-and `api/v1` that exist as empty `.gitkeep` files.
+The following are absent by design rather than by accident. There is no
+migration version table, so schema changes have to be written to be safe on a
+database that already exists. There is no plugin or theme loading mechanism
+beyond the `THEMES_DIR` override. There is no media upload endpoint, despite the
+placeholder packages `pkg/database`, `pkg/logger` and `api/v1` that exist as
+empty `.gitkeep` files. And no content is cached or pre-rendered: every public
+request reads SQLite and renders the page, which is affordable at this size and
+keeps drafts and edits visible immediately.
 
 ## Related documents
 

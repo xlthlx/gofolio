@@ -53,7 +53,7 @@ func main() {
 		authSecret = []byte(secret)
 	}
 
-	tpl := web.MustRenderer(web.FindAdminThemeDir())
+	tpl := web.MustRenderer(web.FindAdminThemeDir(), web.FindPublicThemeDir())
 	sess := middleware.NewSessions(authSecret)
 
 	srv := &http.Server{
