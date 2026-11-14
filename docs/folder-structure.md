@@ -17,7 +17,7 @@ gofolio/
 │   │   └── router.go        # Request routing
 │   │
 │   ├── handler/
-│   │   ├── http/
+│   │   ├── web/
 │   │   │   ├── admin.go     # Admin panel handlers
 │   │   │   ├── api.go       # REST API handlers
 │   │   │   └── public.go    # Public site handlers
@@ -117,7 +117,7 @@ gofolio/
 1. **Foundation** (`cmd/`, `go.mod`, `.env.example`)
 2. **Core Layer** (`internal/model/`, `internal/store/db.go`)
 3. **Business Logic** (`internal/service/`)
-4. **HTTP Interface** (`internal/handler/http/`, `internal/handler/middleware/`)
+4. **HTTP Interface** (`internal/handler/web/`, `internal/handler/middleware/`)
 5. **Tests** (`test/integration/*_test.go`)
 6. **Assets & Templates** (`web/`)
 7. **Documentation** (`README.md`, `api/v1/openapi.yaml`)

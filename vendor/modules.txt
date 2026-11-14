@@ -1,0 +1,17 @@
+# github.com/go-chi/chi/v5 v5.5.1-0.20261018135022-9f8adb1aabaa
+## explicit; go 1.24
+github.com/go-chi/chi/v5
+github.com/go-chi/chi/v5/middleware
+# github.com/gorilla/securecookie v1.1.2
+## explicit; go 1.20
+github.com/gorilla/securecookie
+# github.com/gorilla/sessions v1.4.0
+## explicit; go 1.23
+github.com/gorilla/sessions
+# github.com/mattn/go-sqlite3 v1.14.53
+## explicit; go 1.21
+github.com/mattn/go-sqlite3
+# golang.org/x/crypto v0.59.0
+## explicit; go 1.26.0
+golang.org/x/crypto/bcrypt
+golang.org/x/crypto/blowfish

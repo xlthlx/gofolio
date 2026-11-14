@@ -8,9 +8,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 
-	// The package is named "web"; the folder is handler/http per the docs.
-	web "gofolio/internal/handler/http"
 	"gofolio/internal/handler/middleware"
+	"gofolio/internal/handler/web"
 )
 
 // New builds the full application router.

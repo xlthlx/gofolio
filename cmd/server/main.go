@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	web "gofolio/internal/handler/http"
+	"gofolio/internal/handler/web"
 	"log"
 	"net/http"
 	"os"

@@ -43,8 +43,12 @@ Thumbs.db
 
 # Build Tools
 .idea
-package-lock.json
-/node_modules
-/vendor
+
+# Projects specific
 /gofolio
 /gofolio.db
+/init
+/crush.db-wal
+/crush.db-shm
+/crush.db
+/AGENTS.md

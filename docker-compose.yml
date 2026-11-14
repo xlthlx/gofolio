@@ -3,11 +3,14 @@ services:
     build: .
     ports:
       - "${PORT:-8080}:8080"
+    # The project root is mounted as the container's data directory, so the
+    # SQLite file is created at ./gofolio.db. Running as the invoking user
+    # keeps that bind-mounted file writable by this account.
+    user: "${UID:-1000}:${GID:-1000}"
     volumes:
-      - ./frontend:/root/frontend
-      - ./db/gofolio.db:/root/gofolio.db
+      - ./:/app/data
     environment:
       - PORT=${PORT:-8080}
       - DOMAIN=${DOMAIN:-localhost}
-      - DATABASE_PATH=/root/gofolio.db
+      - DATABASE_PATH=/app/data/gofolio.db
     restart: unless-stopped

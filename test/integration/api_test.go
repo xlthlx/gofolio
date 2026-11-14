@@ -3,7 +3,7 @@ package integration_test
 import (
 	"bytes"
 	"encoding/json"
-	web "gofolio/internal/handler/http"
+	"gofolio/internal/handler/web"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
