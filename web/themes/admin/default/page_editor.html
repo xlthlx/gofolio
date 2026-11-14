@@ -19,8 +19,7 @@
 </header>
 
 <main class="container">
-    <div id="loading" class="loading">Loading editor...</div>
-    <form id="page-form" class="editor-form hidden">
+    <form id="page-form" class="editor-form">
         <input type="hidden" id="page-id">
         <div class="form-group">
             <label for="title">Title</label>
@@ -57,7 +56,7 @@
         height: 400,
         menubar: '',
         plugins: [
-            'autoresize', 'advlist', 'autolink', 'link', 'image', 'lists', 'charmap', 'preview', 'anchor',
+            'advlist', 'autolink', 'link', 'image', 'lists', 'charmap', 'preview', 'anchor',
             'searchreplace', 'wordcount', 'visualblocks', 'visualchars', 'code', 'fullscreen',
             'media', 'table', 'emoticons', 'help'
         ],
@@ -87,10 +86,27 @@
         }
     });
 
-    document.getElementById('title').addEventListener('input', function(e) {
-        if (!document.getElementById('slug').value) {
-            const slug = e.target.value.toLowerCase().replace(/ /g, '-').replace(/[^\w-]/g, '');
-            document.getElementById('slug').value = slug;
+    const titleField = document.getElementById('title');
+    const slugField = document.getElementById('slug');
+
+    let slugEdited = slugField.value !== '';
+
+    slugField.addEventListener('input', function() {
+        slugEdited = slugField.value !== '';
+    });
+
+    const accents = {à:'a', á:'a', â:'a', ä:'a', è:'e', é:'e', ê:'e', ë:'e',
+        ì:'i', í:'i', î:'i', ï:'i', ò:'o', ó:'o', ô:'o', ö:'o', õ:'o',
+        ù:'u', ú:'u', û:'u', ü:'u', ç:'c', ñ:'n'};
+
+    titleField.addEventListener('input', function(e) {
+        if (!slugEdited) {
+            let slug = e.target.value.toLowerCase().replace(
+                /[àáâäãåèéêëìíîïòóôöõùúûüçñ]/g,
+                c => accents[c] || c
+            );
+            slug = slug.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+            slugField.value = slug;
         }
     });
 
@@ -104,8 +120,6 @@
             document.getElementById('status').value = page.status;
             editor.setContent(page.content || '');
         }
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('page-form').classList.remove('hidden');
     }
 
     document.getElementById('page-form').addEventListener('submit', async function(e) {

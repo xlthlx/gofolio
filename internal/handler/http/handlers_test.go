@@ -266,7 +266,7 @@ func TestLoginGetRendersPage(t *testing.T) {
 
 func TestLoginPostHTMXSuccess(t *testing.T) {
 	db := newHandlerTestDB(t)
-	if _, err := service.CreateUser(db, "admin", "admin@localhost", "admin123", true); err != nil {
+	if _, err := service.CreateUser(db, "admin", "admin@localhost", "password", true); err != nil {
 		t.Fatalf("seeding admin: %v", err)
 	}
 
@@ -275,7 +275,7 @@ func TestLoginPostHTMXSuccess(t *testing.T) {
 	r.Post("/admin/login/", a.LoginPost)
 
 	req := httptest.NewRequest(http.MethodPost, "/admin/login/",
-		strings.NewReader("username=admin&password=admin123"))
+		strings.NewReader("username=admin&password=password"))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("HX-Request", "true")
 	rec := httptest.NewRecorder()
@@ -294,7 +294,7 @@ func TestLoginPostHTMXSuccess(t *testing.T) {
 
 func TestLoginPostHTMXFailureReturnsFragment(t *testing.T) {
 	db := newHandlerTestDB(t)
-	if _, err := service.CreateUser(db, "admin", "admin@localhost", "admin123", true); err != nil {
+	if _, err := service.CreateUser(db, "admin", "admin@localhost", "password", true); err != nil {
 		t.Fatalf("seeding admin: %v", err)
 	}
 
@@ -412,8 +412,8 @@ func newTestRouterWithPages(db *sql.DB) http.Handler {
 	a := &web.Admin{DB: db, Tpl: testRenderer, Sess: testSess}
 	r := chi.NewRouter()
 	r.Post("/admin/api/pages/", a.CreatePage)
-	r.Get("/admin/api/pages/", a.ListPages) // <-- the missing line
-	r.Get("/api/pages/{id}/", a.GetPageAPI)
+	r.Get("/admin/api/pages/", a.ListPages)
+	r.Get("/api/pages/{id}/", a.GetPage)
 	r.Put("/api/pages/{id}/", a.UpdatePage)
 	r.Delete("/api/pages/{id}/", a.DeletePage)
 	r.Get("/admin/pages/table/", a.PagesTable)

@@ -149,6 +149,9 @@ func (h Admin) CreatePage(w http.ResponseWriter, r *http.Request) {
 	if page.Slug == "" {
 		page.Slug = Slugify(page.Title)
 	}
+	if page.Status == "" {
+		page.Status = "draft"
+	}
 	if err := h.pages().Create(&page); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -170,9 +173,34 @@ func parseID(r *http.Request) (int64, error) {
 	return strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 }
 
-// Slugify converts a title to a URL slug (lowercase, hyphen-separated).
+// accentReplacer maps common Latin-1 accented letters to their base ASCII
+// letter. Applied after ToLower, so only lowercase forms are needed.
+var accentReplacer = strings.NewReplacer(
+	"à", "a", "á", "a", "â", "a", "ä", "a", "ã", "a", "å", "a",
+	"è", "e", "é", "e", "ê", "e", "ë", "e",
+	"ì", "i", "í", "i", "î", "i", "ï", "i",
+	"ò", "o", "ó", "o", "ô", "o", "ö", "o", "õ", "o",
+	"ù", "u", "ú", "u", "û", "u", "ü", "u",
+	"ç", "c", "ñ", "n", "ý", "y", "'", "-", "’", "-",
+)
+
+// Slugify converts a title to a URL slug: accented letters are transliterated
+// to their base ASCII letter, then lowercased ASCII letters, digits and single
+// hyphens are kept.
 func Slugify(title string) string {
-	return strings.ToLower(strings.ReplaceAll(title, " ", "-"))
+	var b strings.Builder
+	lastHyphen := true // suppress a leading hyphen
+	for _, r := range accentReplacer.Replace(strings.ToLower(title)) {
+		switch {
+		case r >= 'a' && r <= 'z' || r >= '0' && r <= '9':
+			b.WriteRune(r)
+			lastHyphen = false
+		case (r == ' ' || r == '-' || r == '_' || r == '.') && !lastHyphen:
+			b.WriteRune('-')
+			lastHyphen = true
+		}
+	}
+	return strings.Trim(b.String(), "-")
 }
 
 // PagesData feeds the pages page and its table fragment.
@@ -205,7 +233,7 @@ func (h Admin) PagesTable(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetPageAPI returns one page as JSON (used by the editor's load step).
-func (h Admin) GetPageAPI(w http.ResponseWriter, r *http.Request) {
+func (h Admin) GetPage(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r)
 	if err != nil {
 		http.Error(w, "invalid id", http.StatusBadRequest)
@@ -271,7 +299,7 @@ func (h Admin) PageEditor() http.HandlerFunc {
 	return h.View("page_editor.html")
 }
 
-func (h Admin) GetPostAPI(w http.ResponseWriter, r *http.Request) {
+func (h Admin) GetPost(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r)
 	if err != nil {
 		http.Error(w, "invalid id", http.StatusBadRequest)

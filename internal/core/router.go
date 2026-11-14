@@ -54,30 +54,33 @@ func New(db *sql.DB, tpl *web.Renderer, sess *middleware.Sessions) http.Handler 
 		r.Get("/", admin.DashboardPage)
 		r.Get("/dashboard/", admin.DashboardPage)
 		r.Get("/dashboard/recent/", admin.RecentPosts)
+
 		r.Get("/posts/", admin.PostsPage)
 		r.Get("/posts/table/", admin.PostsTable)
 		r.Get("/posts/new/", admin.View("editor.html"))
-		r.Get("/api/posts/{id}/", admin.GetPostAPI)
 		r.Get("/posts/{id}/edit/", admin.View("editor.html"))
+
 		r.Get("/pages/", admin.PagesPage)
 		r.Get("/pages/table/", admin.PagesTable)
 		r.Get("/pages/new/", admin.PageEditor())
 		r.Get("/pages/{id}/edit/", admin.PageEditor())
-		r.Get("/api/pages/{id}/", admin.GetPageAPI)
-		r.Put("/api/pages/{id}/", admin.UpdatePage)
-		r.Delete("/api/pages/{id}/", admin.DeletePage)
+
 		r.Get("/settings/", admin.SettingsPage)
 		r.Post("/settings/password/", admin.ChangePassword)
 		r.Get("/settings/site/", admin.SiteSettingsGet)
 		r.Post("/settings/site/", admin.SiteSettingsPost)
 
 		r.Get("/api/posts/", admin.ListPosts)
+		r.Get("/api/posts/{id}/", admin.GetPost)
 		r.Post("/api/posts/", admin.CreatePost)
 		r.Put("/api/posts/{id}/", admin.UpdatePost)
 		r.Delete("/api/posts/{id}/", admin.DeletePost)
+
 		r.Get("/api/pages/", admin.ListPages)
+		r.Get("/api/pages/{id}/", admin.GetPage)
 		r.Post("/api/pages/", admin.CreatePage)
-		r.Get("/api/posts/{id}/", admin.GetPostAPI)
+		r.Put("/api/pages/{id}/", admin.UpdatePage)
+		r.Delete("/api/pages/{id}/", admin.DeletePage)
 	})
 
 	r.Get("/admin/login/", admin.LoginGet)

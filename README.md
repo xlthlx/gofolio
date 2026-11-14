@@ -54,7 +54,7 @@ In production, set `AUTH_SECRET` explicitly; otherwise a random value is generat
 
 ## First login
 
-A default administrator is created on first boot with the username `admin` and the password `admin123`. Change this password immediately after the first login. The startup log prints a reminder as well.
+A default administrator is created on first boot with the username `admin` and the password `password`. Change this password immediately after the first login. The startup log prints a reminder as well.
 
 ## Running with Docker
 

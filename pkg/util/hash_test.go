@@ -69,7 +69,7 @@ func TestCheckPasswordHash(t *testing.T) {
 		{name: "case differs", password: "S3CRET", hash: correctHash, want: false},
 		{name: "empty password vs hash", password: "", hash: correctHash, want: false},
 		{name: "malformed hash", password: "s3cret", hash: "not-a-hash", want: false},
-		{name: "legacy sha256 hex hash", password: "admin123", hash: "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f", want: false},
+		{name: "legacy sha256 hex hash", password: "password", hash: "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f", want: false},
 	}
 
 	for _, tt := range tests {
