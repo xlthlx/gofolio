@@ -125,6 +125,12 @@ func (r *Renderer) SettingsPage(w io.Writer, data interface{}) error {
 	return r.settings.ExecuteTemplate(w, "settings.html", data)
 }
 
+// SiteSettings renders only the site settings section, for the form to swap in
+// after a save.
+func (r *Renderer) SiteSettings(w io.Writer, data interface{}) error {
+	return r.settings.ExecuteTemplate(w, "site_settings", data)
+}
+
 func (r *Renderer) DashboardPage(w io.Writer, data interface{}) error {
 	return r.dashboard.ExecuteTemplate(w, "dashboard.html", data)
 }

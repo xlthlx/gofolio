@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -98,5 +99,35 @@ func TestChangePasswordValidation(t *testing.T) {
 	}
 	if rec := post("new_password=firstpass&confirm_password=secondpass"); rec.Code != http.StatusBadRequest {
 		t.Errorf("mismatched passwords: status = %d, want %d", rec.Code, http.StatusBadRequest)
+	}
+}
+
+// TestSettingsPageShowsStoredSiteSettings guards the page the admin lands on:
+// before this, the settings route rendered the template without data, so saved
+// values only appeared on the site settings route.
+func TestSettingsPageShowsStoredSiteSettings(t *testing.T) {
+	h := newTestRouter(newHandlerTestDB(t))
+
+	rec := doForm(t, h, "/admin/settings/site/", url.Values{
+		"site_title": {"Gopher Works"},
+		"tagline":    {"Build things"},
+	}, false)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("POST site settings: status = %d, want %d", rec.Code, http.StatusSeeOther)
+	}
+
+	rec = doJSON(t, h, http.MethodGet, "/admin/settings/", nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("GET settings: status = %d", rec.Code)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "Site title: Gopher Works") {
+		t.Error("settings page does not show the stored site title")
+	}
+	if !strings.Contains(body, `value="Gopher Works"`) {
+		t.Error("settings page does not fill the site title input with the stored value")
+	}
+	if !strings.Contains(body, `value="Build things"`) {
+		t.Error("settings page does not fill the tagline input with the stored value")
 	}
 }

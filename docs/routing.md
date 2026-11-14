@@ -52,10 +52,9 @@ These routes are inside the `/admin/` group and therefore require a session.
 | `GET` | `/admin/pages/new/` | Page editor, rendered empty |
 | `GET` | `/admin/pages/{id}/edit/` | Page editor rendered with the stored page |
 | `POST` | `/admin/pages/save/` | Saves the page editor form, creating or updating |
-| `GET` | `/admin/settings/` | Settings page: site settings plus the password form |
+| `GET` | `/admin/settings/` | Settings page: site settings with stored values, plus the password form |
 | `POST` | `/admin/settings/password/` | Password change, minimum eight characters |
-| `GET` | `/admin/settings/site/` | Site settings form filled with stored values |
-| `POST` | `/admin/settings/site/` | Saves whitelisted keys, then re-renders the page |
+| `POST` | `/admin/settings/site/` | Saves the whitelisted site settings; answers with the re-rendered section for HTMX and with a `303` to `/admin/settings/` otherwise |
 | `GET` | `/admin/static/*` | Files from `web/themes/admin/default/` |
 
 The table fragment endpoints exist as the pieces the tables are built from, and

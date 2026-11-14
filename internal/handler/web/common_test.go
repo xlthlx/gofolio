@@ -72,6 +72,7 @@ func newTestRouter(db *sql.DB) http.Handler {
 	r.Get("/admin/pages/", a.PagesPage)
 	r.Get("/admin/pages/table/", a.PagesTable)
 	r.Get("/admin/settings/", a.SettingsPage)
+	r.Post("/admin/settings/site/", a.SiteSettingsPost)
 
 	// Editors: one handler per mode, one save endpoint shared by both
 	r.Get("/admin/posts/new/", a.PostEditor)

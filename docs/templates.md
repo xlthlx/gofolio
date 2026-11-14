@@ -14,9 +14,10 @@ so `/admin/static/*` maps to the admin theme and `/static/*` maps to the public
 theme. Nothing is embedded in the binary, which is why the Docker image copies
 `web/` next to the binary and why tests walk up the tree to find the repository.
 
-The assets that exist today are a stylesheet, the vendored HTMX build, the
-vendored TinyMCE distribution under `assets/js/tinymce/`, and empty
-`assets/img` directories. The public theme contains a stylesheet and
+The assets that exist today are a stylesheet, the vendored HTMX build, a small
+`htmx-config.js` that adjusts how HTMX treats failed responses, the vendored
+TinyMCE distribution under `assets/js/tinymce/`, and empty `assets/img`
+directories. The public theme contains a stylesheet and
 `index.html`, but only its assets directory is reachable: `index.html` is not
 routed, and it links to `/static/styles.css`, a path that does not correspond to
 a file in the theme. Treat that file as a leftover rather than a working page.
@@ -65,14 +66,24 @@ Row delete buttons use `hx-delete` against `/admin/api/posts/{id}/` or
 responses are empty bodies on purpose, which is why the handlers answer `200`
 for HTMX rather than `204`.
 
-Three forms swap their result into the page in place: the login form posts to
+Several forms swap their result into the page in place: the login form posts to
 `/admin/login/` and targets `#login-error`, the password form posts to
-`/admin/settings/password/` and targets `#password-result`, and the two editors
-post to `/admin/posts/save/` and `/admin/pages/save/` with their error fragment
-targeted at an empty result container. The password handler writes a small
-paragraph of HTML with an inline colour, which is the one place where styling is
-emitted from Go rather than from the stylesheet; the error fragments do the same
-to stay consistent with it.
+`/admin/settings/password/` and targets `#password-result`, the site settings
+form posts to `/admin/settings/site/` and replaces its own section, and the two
+editors post to `/admin/posts/save/` and `/admin/pages/save/` with their error
+fragment targeted at an empty result container. The password and error fragments
+are small paragraphs of HTML with an inline colour, which is the one place where
+styling is emitted from Go rather than from the stylesheet.
+
+One limitation is worth knowing before adding another fragment. The vendored
+HTMX 2.0.4 swaps only successful responses by default and treats 4xx and 5xx as
+errors it does not swap, which would make every failure fragment invisible. The
+admin templates therefore load `assets/js/htmx-config.js` right after the HTMX
+build, where `defer` guarantees `htmx` exists, and that file sets
+`responseHandling` so that 4xx and 5xx responses are swapped too. The handlers can
+then keep answering with the status that describes the problem, and the message
+they return is displayed in place. A test in `render_test.go` renders every page
+template and fails if one of them stops loading the config.
 
 Every one of these flows also works as a plain form submission. The forms carry
 a conventional `method` and `action` alongside the `hx-` attributes, and the
@@ -104,13 +115,19 @@ title typed into an empty slug field is turned into a slug by `Slugify` in
 
 ## Settings page detail
 
-`GET /admin/settings/` renders `settings.html` with no data, and
-`GET /admin/settings/site/` renders the same template with the stored values.
-The `site_settings` include tolerates a missing map, falling back to the default
-site title and tagline, which is why the settings page renders fine on a database
-with no settings rows. The form posts only the whitelisted keys `site_title` and
-`tagline`, empty values are skipped rather than saved, and the handler re-renders
-the whole settings page afterwards so the saved values are visible immediately.
+`GET /admin/settings/` renders `settings.html` plus the `site_settings` include,
+both filled with the stored values. The include falls back to the default site
+title and tagline when the values map is missing or a key is absent, which is
+what a database with no settings rows produces.
+
+The site settings form is a single section with the id `site-settings`, and it
+posts to `/admin/settings/site/` both through `action` and through `hx-post`,
+targeting itself with `hx-swap="outerHTML"`. Over HTMX the handler answers with
+the same section re-rendered from the database, so the saved values appear in
+place and the swapped-in markup keeps working for a second save. Without HTMX the
+handler redirects to `/admin/settings/` with a `303`, which is the same page
+under its canonical URL. Either way the form writes only the whitelisted keys
+`site_title` and `tagline`, and empty values are skipped rather than saved.
 
 ## Adding an admin page
 

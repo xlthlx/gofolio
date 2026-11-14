@@ -6,13 +6,12 @@ import (
 	"gofolio/internal/service"
 )
 
-// SettingsPage renders the settings page. Site title and tagline have no
-// database backing yet, so they render as fixed text, not editable inputs.
+// SettingsPage renders the settings page, site settings included. It has to
+// read the stored values for the site_settings include to show them; passing no
+// data at all made the page keep showing the template defaults after the form
+// below it had saved real ones.
 func (h Admin) SettingsPage(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := h.Tpl.SettingsPage(w, nil); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	h.renderSettings(w, h.settingsData())
 }
 
 // ChangePassword handles the HTMX password-change form. On failure, it swaps
