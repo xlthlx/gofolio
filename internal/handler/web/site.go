@@ -101,10 +101,10 @@ func (h Public) PostPage(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// PagePage renders one page. Pages are reachable whatever their status says,
-// which is how the JSON API has always treated them.
+// PagePage renders one published page. A draft, or a slug that does not exist,
+// is a 404, so a page is invisible until it is published, exactly like a post.
 func (h Public) PagePage(w http.ResponseWriter, r *http.Request) {
-	page, err := h.pages().GetBySlug(chi.URLParam(r, "slug"))
+	page, err := h.pages().GetPublishedBySlug(chi.URLParam(r, "slug"))
 	if errors.Is(err, sql.ErrNoRows) {
 		h.notFound(w, r)
 		return

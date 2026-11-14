@@ -53,6 +53,20 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 `
 
+// statusDraft is the status a row gets when none is supplied. It matches the
+// column default in the schema above, and the writes apply it themselves so a
+// row is never stored with an empty status, whatever called the store.
+const statusDraft = "draft"
+
+// draftStatus normalises an empty status, which is what an editor form or an
+// API client leaves behind when it does not choose one.
+func draftStatus(status string) string {
+	if status == "" {
+		return statusDraft
+	}
+	return status
+}
+
 func Migrate(db *sql.DB) error {
 	_, err := db.Exec(migrations)
 	return err

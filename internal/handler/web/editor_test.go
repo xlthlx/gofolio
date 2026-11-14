@@ -175,6 +175,42 @@ func TestSavePostUpdatesExistingPost(t *testing.T) {
 	}
 }
 
+// A form that never touched the status select, which is what a new post looks
+// like, has to arrive as a draft rather than as an empty status.
+func TestSavePostDefaultsToDraft(t *testing.T) {
+	h := newTestRouter(newHandlerTestDB(t))
+
+	rec := doForm(t, h, "/admin/posts/save/", url.Values{"title": {"Quiet Draft"}}, true)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body: %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+
+	post := fetchPost(t, h, onlyPostID(t, h))
+	if post["status"] != "draft" {
+		t.Errorf("status = %v, want draft", post["status"])
+	}
+	if rec := doJSON(t, h, http.MethodGet, "/posts/quiet-draft/", nil); rec.Code != http.StatusNotFound {
+		t.Errorf("an unsaved-looking draft is public: status = %d", rec.Code)
+	}
+}
+
+// onlyPostID returns the id of the only post stored, for the cases where the
+// post was created through the editor form rather than through createPost.
+func onlyPostID(t *testing.T, h http.Handler) int64 {
+	t.Helper()
+	rec := doJSON(t, h, http.MethodGet, "/admin/api/posts/", nil)
+	var posts []struct {
+		ID int64 `json:"id"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &posts); err != nil {
+		t.Fatalf("listing posts: %v", err)
+	}
+	if len(posts) != 1 {
+		t.Fatalf("stored %d posts, want 1", len(posts))
+	}
+	return posts[0].ID
+}
+
 func TestSavePostRequiresTitle(t *testing.T) {
 	h := newTestRouter(newHandlerTestDB(t))
 

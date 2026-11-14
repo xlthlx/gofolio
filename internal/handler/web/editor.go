@@ -58,9 +58,6 @@ func (h Admin) SavePost(w http.ResponseWriter, r *http.Request) {
 		Content: r.PostFormValue("content"),
 		Status:  r.PostFormValue("status"),
 	}
-	if post.Status == "" {
-		post.Status = "draft"
-	}
 	if post.Slug == "" && post.Title != "" {
 		post.Slug = Slugify(post.Title)
 	}

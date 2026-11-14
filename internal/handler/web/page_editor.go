@@ -56,9 +56,6 @@ func (h Admin) SavePage(w http.ResponseWriter, r *http.Request) {
 		Content: r.PostFormValue("content"),
 		Status:  r.PostFormValue("status"),
 	}
-	if page.Status == "" {
-		page.Status = "draft"
-	}
 	if page.Slug == "" && page.Title != "" {
 		page.Slug = Slugify(page.Title)
 	}

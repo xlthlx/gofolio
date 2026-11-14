@@ -51,7 +51,7 @@ func (h Public) GetPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Public) GetPage(w http.ResponseWriter, r *http.Request) {
-	page, err := h.pages().GetBySlug(chi.URLParam(r, "slug"))
+	page, err := h.pages().GetPublishedBySlug(chi.URLParam(r, "slug"))
 	if errors.Is(err, sql.ErrNoRows) {
 		http.NotFound(w, r)
 		return

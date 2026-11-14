@@ -161,6 +161,27 @@ func TestUnknownPageIsThemedNotFound(t *testing.T) {
 	}
 }
 
+func TestPageViewHidesDrafts(t *testing.T) {
+	h := newTestRouter(newHandlerTestDB(t))
+
+	rec := doJSON(t, h, http.MethodPost, "/admin/api/pages/", map[string]string{
+		"title":   "Hidden Page",
+		"status":  "draft",
+		"content": "<p>hidden</p>",
+	})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("seeding page: status = %d", rec.Code)
+	}
+
+	rec = doJSON(t, h, http.MethodGet, "/pages/hidden-page/", nil)
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("draft page rendered publicly: status = %d, want %d", rec.Code, http.StatusNotFound)
+	}
+	if strings.Contains(rec.Body.String(), "hidden</p>") {
+		t.Error("draft page content leaked into the 404")
+	}
+}
+
 func TestPublicPagesUseStoredSiteIdentity(t *testing.T) {
 	h := newTestRouter(newHandlerTestDB(t))
 

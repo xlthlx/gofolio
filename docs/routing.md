@@ -28,7 +28,7 @@ The public site is HTML, rendered by the handlers in `internal/handler/web/site.
 |---|---|---|
 | `GET` | `/` | Homepage listing published posts, newest first |
 | `GET` | `/posts/{slug}/` | One published post; a draft or unknown slug is a themed 404 |
-| `GET` | `/pages/{slug}/` | One page regardless of status; unknown slug is a themed 404 |
+| `GET` | `/pages/{slug}/` | One published page; a draft or unknown slug is a themed 404 |
 | `GET` | `/static/*` | Files from `web/themes/public/default/` |
 | `GET` | `/healthz/` | Liveness plus a database ping: `200 {"status":"ok"}` or `503` |
 
@@ -45,7 +45,7 @@ clients use and what the tests exercise.
 |---|---|---|
 | `GET` | `/api/posts/` | Published posts, newest first, wrapped as `{"posts":[...]}` |
 | `GET` | `/api/posts/{slug}/` | One published post as JSON; a draft or unknown slug is a `404` |
-| `GET` | `/api/pages/{slug}/` | One page as JSON regardless of status; unknown slug is a `404` |
+| `GET` | `/api/pages/{slug}/` | One published page as JSON; a draft or unknown slug is a `404` |
 
 These moved under `/api/` when the site became HTML: a URL now has one
 representation, rather than switching on the `Accept` header.
@@ -109,7 +109,8 @@ buttons in the tables and available to any client that prefers JSON to forms.
 Creation is forgiving in two ways: an empty `slug` is derived from the title, and
 an empty `status` becomes `draft`. A missing title is rejected with
 `400 Title is required`. Both rules apply to pages as well as posts, since the
-editor forms and the JSON API go through the same store methods.
+editor forms and the JSON API go through the same store methods, and the status
+default also applies on update, so a row never ends up with an empty status.
 
 `PUT` is used where `PATCH` might be expected. The request body is decoded into a
 fresh model and all editable fields are written, so a partial body clears the

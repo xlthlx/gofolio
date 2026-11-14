@@ -71,9 +71,6 @@ func (h Admin) CreatePost(w http.ResponseWriter, r *http.Request) {
 	if post.Slug == "" {
 		post.Slug = Slugify(post.Title)
 	}
-	if post.Status == "" {
-		post.Status = "draft"
-	}
 	if err := h.posts().Create(&post); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -139,9 +136,6 @@ func (h Admin) CreatePage(w http.ResponseWriter, r *http.Request) {
 	}
 	if page.Slug == "" {
 		page.Slug = Slugify(page.Title)
-	}
-	if page.Status == "" {
-		page.Status = "draft"
 	}
 	if err := h.pages().Create(&page); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

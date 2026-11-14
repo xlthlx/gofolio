@@ -194,8 +194,12 @@ func TestSavePagePlainFormRedirects(t *testing.T) {
 		t.Errorf("Location = %q, want /admin/pages/", loc)
 	}
 
-	if page := fetchPage(t, h, onlyPageID(t, h)); page["title"] != "No JavaScript" {
+	page := fetchPage(t, h, onlyPageID(t, h))
+	if page["title"] != "No JavaScript" {
 		t.Errorf("title = %v, want No JavaScript", page["title"])
+	}
+	if page["status"] != "draft" {
+		t.Errorf("status = %v, want draft for a form that sent no status", page["status"])
 	}
 }
 

@@ -67,6 +67,7 @@ func TestPublicGetPageBySlug(t *testing.T) {
 
 	rec := doJSON(t, h, http.MethodPost, "/admin/api/pages/", map[string]string{
 		"title":   "About Us",
+		"status":  "published",
 		"content": "<p>about</p>",
 	})
 	if rec.Code != http.StatusCreated {
@@ -88,5 +89,23 @@ func TestPublicGetPageBySlug(t *testing.T) {
 	rec = doJSON(t, h, http.MethodGet, "/api/pages/ghost/", nil)
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("unknown page: status = %d, want %d", rec.Code, http.StatusNotFound)
+	}
+}
+
+func TestPublicGetPageHidesDrafts(t *testing.T) {
+	h := newTestRouter(newHandlerTestDB(t))
+
+	rec := doJSON(t, h, http.MethodPost, "/admin/api/pages/", map[string]string{
+		"title":   "Hidden Page",
+		"status":  "draft",
+		"content": "<p>hidden</p>",
+	})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("seeding page: status = %d", rec.Code)
+	}
+
+	rec = doJSON(t, h, http.MethodGet, "/api/pages/hidden-page/", nil)
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("draft page visible in the JSON API: status = %d, want %d", rec.Code, http.StatusNotFound)
 	}
 }

@@ -112,14 +112,14 @@ func TestPageStoreCreateAndGet(t *testing.T) {
 	pgs := PageStore{DB: newTestDB(t)}
 
 	// Slug must be supplied by the caller (the handler derives it via Slugify).
-	in := &model.Page{Title: "About Us", Slug: "about-us"}
+	in := &model.Page{Title: "About Us", Slug: "about-us", Status: "published"}
 	if err := pgs.Create(in); err != nil {
 		t.Fatalf("Create: %v", err)
 	}
 
-	p, err := pgs.GetBySlug("about-us")
+	p, err := pgs.GetPublishedBySlug("about-us")
 	if err != nil {
-		t.Fatalf("GetBySlug: %v", err)
+		t.Fatalf("GetPublishedBySlug: %v", err)
 	}
 	if p.Title != "About Us" {
 		t.Errorf("Title = %q, want About Us", p.Title)
@@ -133,8 +133,98 @@ func TestPageStoreCreateAndGet(t *testing.T) {
 		t.Errorf("ListAll = %d pages, want 1", len(pages))
 	}
 
-	if _, err := pgs.GetBySlug("ghost"); err == nil {
+	if _, err := pgs.GetPublishedBySlug("ghost"); err == nil {
 		t.Error("missing page should return an error")
+	}
+}
+
+func TestPostStoreDefaultsStatusToDraft(t *testing.T) {
+	ps := PostStore{DB: newTestDB(t)}
+
+	in := &model.Post{Title: "No Status", Slug: "no-status"}
+	if err := ps.Create(in); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if in.Status != statusDraft {
+		t.Errorf("Status after Create = %q, want %q", in.Status, statusDraft)
+	}
+
+	// An update that omits the status must not blank the column either.
+	in.Status = ""
+	in.Title = "Renamed"
+	if err := ps.Update(in, in.ID); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+
+	all, err := ps.ListAll()
+	if err != nil {
+		t.Fatalf("ListAll: %v", err)
+	}
+	if len(all) != 1 || all[0].Status != statusDraft {
+		t.Errorf("stored status = %+v, want %q", all, statusDraft)
+	}
+	if published, err := ps.ListPublished(); err != nil || len(published) != 0 {
+		t.Errorf("post without a status is published: %+v, err %v", published, err)
+	}
+}
+
+func TestPageStoreDefaultsStatusToDraft(t *testing.T) {
+	pgs := PageStore{DB: newTestDB(t)}
+
+	in := &model.Page{Title: "No Status", Slug: "no-status"}
+	if err := pgs.Create(in); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if in.Status != statusDraft {
+		t.Errorf("Status after Create = %q, want %q", in.Status, statusDraft)
+	}
+
+	in.Status = ""
+	if err := pgs.Update(in, in.ID); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+
+	stored, err := pgs.GetByID(in.ID)
+	if err != nil {
+		t.Fatalf("GetByID: %v", err)
+	}
+	if stored.Status != statusDraft {
+		t.Errorf("stored status = %q, want %q", stored.Status, statusDraft)
+	}
+	if _, err := pgs.GetPublishedBySlug("no-status"); err == nil {
+		t.Error("page without a status is reachable publicly")
+	}
+}
+
+func TestPageStoreVisibility(t *testing.T) {
+	pgs := PageStore{DB: newTestDB(t)}
+
+	if err := pgs.Create(&model.Page{Title: "Draft", Slug: "draft", Status: "draft"}); err != nil {
+		t.Fatalf("Create draft: %v", err)
+	}
+	if err := pgs.Create(&model.Page{Title: "Live", Slug: "live", Status: "published"}); err != nil {
+		t.Fatalf("Create published: %v", err)
+	}
+
+	if _, err := pgs.GetPublishedBySlug("draft"); err == nil {
+		t.Error("a draft page must not be reachable by slug")
+	}
+
+	live, err := pgs.GetPublishedBySlug("live")
+	if err != nil {
+		t.Fatalf("GetPublishedBySlug(live): %v", err)
+	}
+	if live.Title != "Live" {
+		t.Errorf("Title = %q, want Live", live.Title)
+	}
+
+	// The admin still sees both, and can still load either by id.
+	pages, err := pgs.ListAll()
+	if err != nil {
+		t.Fatalf("ListAll: %v", err)
+	}
+	if len(pages) != 2 {
+		t.Errorf("ListAll = %d pages, want both", len(pages))
 	}
 }
 
@@ -170,9 +260,11 @@ func TestPageStorePersistsStatusAndTimestamps(t *testing.T) {
 		t.Fatalf("Update: %v", err)
 	}
 
-	updated, err := pgs.GetBySlug("about-us")
+	// Read it back by id: the page is a draft now, so the published lookup is
+	// the wrong door to knock on.
+	updated, err := pgs.GetByID(in.ID)
 	if err != nil {
-		t.Fatalf("GetBySlug after update: %v", err)
+		t.Fatalf("GetByID after update: %v", err)
 	}
 	if updated.Status != "draft" {
 		t.Errorf("Status after Update = %q, want draft", updated.Status)

@@ -32,12 +32,16 @@ author or category relation, and there is no foreign key anywhere in the schema
 today.
 
 `status` is free text rather than an enum, and only two values are used in
-practice: `draft` and `published`. It defaults to `draft` and the admin marks a
-post or page published through the editor select. For posts it also decides
-public visibility, since the public API only lists published posts; for pages it
-is descriptive, because pages are reachable by slug whatever their status says.
-Both `PageStore` and `PostStore` read and write `status` and `updated_at`, so the
-JSON for a page reports the stored status and the time of its last update.
+practice: `draft` and `published`. It defaults to `draft`, and the admin marks a
+post or page published through the editor select. An empty status is stored as
+`draft` rather than as an empty string, and that rule lives in the store, so
+creation and update both apply it and no caller has to remember to. For both
+tables it decides public visibility: the homepage lists published posts, and a
+post or page that is not published is a 404 at its public URL, so a draft stays
+private until it is published. The admin is unaffected, since it lists and loads
+rows whatever their status by id. Both `PageStore` and `PostStore` read and write
+`status` and `updated_at`, so the JSON for a page reports the stored status and
+the time of its last update.
 
 ## Migrations
 
@@ -66,8 +70,10 @@ story for its table.
 `GetPublishedBySlug` is the one a public request uses, which is why an unfetched
 draft looks like a missing page to the outside world.
 
-`PageStore` offers `ListAll`, `GetBySlug`, `GetByID`, `Create`, `Update` and
-`Delete`. There is no published filter, so any page is reachable by slug.
+`PageStore` offers `ListAll`, `GetPublishedBySlug`, `GetByID`, `Create`, `Update`
+and `Delete`. `GetPublishedBySlug` filters on `status = 'published'` exactly as
+the post version does, so the two resources share one visibility rule, and the
+admin reaches a draft through `GetByID` instead.
 
 `SettingStore` offers `All`, `Get` and `Set`. `All` returns a map keyed by
 setting name for template convenience, and `Set` is an upsert written as

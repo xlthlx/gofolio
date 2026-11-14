@@ -50,6 +50,7 @@ func (s PostStore) GetPublishedBySlug(slug string) (*model.Post, error) {
 }
 
 func (s PostStore) Create(p *model.Post) error {
+	p.Status = draftStatus(p.Status)
 	result, err := s.DB.Exec(
 		`INSERT INTO posts (title, slug, content, status) VALUES (?, ?, ?, ?)`,
 		p.Title, p.Slug, p.Content, p.Status,
@@ -68,6 +69,7 @@ func (s PostStore) Create(p *model.Post) error {
 }
 
 func (s PostStore) Update(p *model.Post, id int64) error {
+	p.Status = draftStatus(p.Status)
 	_, err := s.DB.Exec(
 		`UPDATE posts SET title = ?, slug = ?, content = ?, status = ?, updated_at = ? WHERE id = ?`,
 		p.Title, p.Slug, p.Content, p.Status, time.Now(), id,
@@ -102,11 +104,13 @@ func (s PageStore) ListAll() ([]model.Page, error) {
 	return pages, rows.Err()
 }
 
-// GetBySlug returns sql.ErrNoRows when not found; handlers map that to 404.
-func (s PageStore) GetBySlug(slug string) (*model.Page, error) {
+// GetPublishedBySlug returns a published page and nothing else, so a draft stays
+// invisible however its slug is guessed. This mirrors GetPublishedBySlug on posts
+// and returns sql.ErrNoRows when no published page matches.
+func (s PageStore) GetPublishedBySlug(slug string) (*model.Page, error) {
 	var p model.Page
 	err := s.DB.QueryRow(
-		`SELECT `+pageCols+` FROM pages WHERE slug = ?`, slug,
+		`SELECT `+pageCols+` FROM pages WHERE slug = ? AND status = 'published'`, slug,
 	).Scan(&p.ID, &p.Title, &p.Slug, &p.Content, &p.Status, &p.CreatedAt, &p.UpdatedAt)
 	if err != nil {
 		return nil, err
@@ -115,6 +119,7 @@ func (s PageStore) GetBySlug(slug string) (*model.Page, error) {
 }
 
 func (s PageStore) Create(p *model.Page) error {
+	p.Status = draftStatus(p.Status)
 	result, err := s.DB.Exec(
 		`INSERT INTO pages (title, slug, content, status) VALUES (?, ?, ?, ?)`,
 		p.Title, p.Slug, p.Content, p.Status,
@@ -145,6 +150,7 @@ func (s PageStore) GetByID(id int64) (*model.Page, error) {
 
 // Update modifies title, slug, content and status of an existing page.
 func (s PageStore) Update(p *model.Page, id int64) error {
+	p.Status = draftStatus(p.Status)
 	_, err := s.DB.Exec(
 		`UPDATE pages SET title = ?, slug = ?, content = ?, status = ?, updated_at = ? WHERE id = ?`,
 		p.Title, p.Slug, p.Content, p.Status, time.Now(), id)
