@@ -17,5 +17,6 @@ type Page struct {
 	Title     string    `json:"title"`
 	Slug      string    `json:"slug"`
 	Content   string    `json:"content"`
+	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"created_at"`
 }

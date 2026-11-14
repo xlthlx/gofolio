@@ -32,31 +32,28 @@ CREATE TABLE IF NOT EXISTS pages (
 	title TEXT NOT NULL,
 	slug TEXT UNIQUE NOT NULL,
 	content TEXT,
-	created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	status TEXT DEFAULT 'draft',
+	created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
-`
 
-func Migrate(db *sql.DB) error {
-	if _, err := db.Exec(`
 CREATE TABLE IF NOT EXISTS users (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	username TEXT UNIQUE NOT NULL,
 	email TEXT UNIQUE NOT NULL,
 	password_hash TEXT NOT NULL,
 	is_admin INTEGER DEFAULT 0,
-	created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-)`); err != nil {
-		return err
-	}
+	created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+	updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 
-	if _, err := db.Exec(`
-	CREATE TABLE IF NOT EXISTS settings (
-		key TEXT PRIMARY KEY,
-		value TEXT NOT NULL
-	)`); err != nil {
-		return err
-	}
+CREATE TABLE IF NOT EXISTS settings (
+	key TEXT PRIMARY KEY,
+	value TEXT NOT NULL
+);
+`
 
+func Migrate(db *sql.DB) error {
 	_, err := db.Exec(migrations)
 	return err
 }

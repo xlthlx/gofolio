@@ -73,7 +73,7 @@ func CreateDefaultAdmin(db *sql.DB) error {
 	db.QueryRow("SELECT COUNT(*) FROM users WHERE is_admin = 1").Scan(&count)
 
 	if count == 0 {
-		defaultPassword := "admin123"
+		defaultPassword := "password"
 		_, err := CreateUser(db, "admin", "admin@local", defaultPassword, true)
 		return err
 	}

@@ -105,7 +105,7 @@ func TestLoginSuccessSetsCookie(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/login/", nil)
 	rec := httptest.NewRecorder()
 
-	if err := Login(db, sess, rec, req, "admin", "admin123"); err != nil {
+	if err := Login(db, sess, rec, req, "admin", "password"); err != nil {
 		t.Fatalf("Login returned error: %v", err)
 	}
 

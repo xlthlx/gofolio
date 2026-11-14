@@ -65,7 +65,7 @@ func main() {
 	}
 
 	fmt.Printf("gofolio running at http://%s:%s\n", cfg.Domain, cfg.Port)
-	fmt.Println("Default admin: username=admin, password=admin123 (change it after first login)")
+	fmt.Println("Default admin: username=admin, password=password (change it after first login)")
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {

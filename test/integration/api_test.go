@@ -109,7 +109,7 @@ func TestFullPostLifecycle(t *testing.T) {
 
 	// Login success (sets session cookie in the jar)
 	resp = call(t, client, http.MethodPost, base+"/api/auth/login/",
-		map[string]string{"username": "admin", "password": "admin123"})
+		map[string]string{"username": "admin", "password": "password"})
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("login: status = %d, want %d", resp.StatusCode, http.StatusOK)
 	}
