@@ -1,147 +1,106 @@
+{{define "page_editor_page"}}
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Page Editor - gofolio Admin</title>
-    <link rel="stylesheet" href="/admin/static/assets/css/styles.css">
-    <script src="/admin/static/assets/js/htmx.min.js" defer></script>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Page Editor - goFolio Admin</title>
+	<link rel="stylesheet" href="/admin/static/assets/css/styles.css">
+	<script src="/admin/static/assets/js/htmx.min.js" defer></script>
 </head>
 <body>
 <header>
-    <nav class="container">
-        <h1><a href="/" style="color:white;text-decoration:none;">gofolio Admin</a></h1>
-        <ul>
-            <li><a href="/" style="color:white;">View Site</a></li>
-            <li><a href="/api/auth/logout/" style="color:white;">Logout</a></li>
-        </ul>
-    </nav>
+	<nav class="container">
+		<h1><a href="/admin/" style="color:white;text-decoration:none;">goFolio Admin</a></h1>
+		<ul>
+			<li><a href="/admin/pages/" style="color:white;">Pages</a></li>
+			<li><a href="/api/auth/logout/" style="color:white;">Logout</a></li>
+		</ul>
+	</nav>
 </header>
 
 <main class="container">
-    <form id="page-form" class="editor-form">
-        <input type="hidden" id="page-id">
-        <div class="form-group">
-            <label for="title">Title</label>
-            <input type="text" id="title" required>
-        </div>
-        <div class="form-group">
-            <label for="slug">Slug (optional)</label>
-            <input type="text" id="slug" placeholder="auto-generated from title">
-        </div>
-        <div class="form-group">
-            <label for="content">Content</label>
-            <textarea id="content"></textarea>
-        </div>
-        <div class="form-group">
-            <label for="status">Status</label>
-            <select id="status">
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-            </select>
-        </div>
-        <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Save Page</button>
-            <a href="/admin/pages/" class="btn btn-secondary">Cancel</a>
-        </div>
-    </form>
+	<h2>{{if .Page.ID}}Edit page{{else}}New page{{end}}</h2>
+
+	<form id="page-form" class="editor-form"
+		  method="post" action="/admin/pages/save/"
+		  hx-post="/admin/pages/save/"
+		  hx-target="#page-editor-result"
+		  hx-swap="innerHTML">
+		<input type="hidden" id="page-id" name="id" value="{{.Page.ID}}">
+
+		<div class="form-group">
+			<label for="title">Title</label>
+			<input type="text" id="title" name="title" value="{{.Page.Title}}" required>
+		</div>
+
+		<div class="form-group">
+			<label for="slug">Slug (optional)</label>
+			<input type="text" id="slug" name="slug" value="{{.Page.Slug}}"
+				   placeholder="auto-generated from title">
+		</div>
+
+		<div class="form-group">
+			<label for="content">Content</label>
+			<textarea id="content" name="content">{{.Page.Content}}</textarea>
+		</div>
+
+		<div class="form-group">
+			<label for="status">Status</label>
+			<select id="status" name="status">
+				<option value="draft"{{if eq .Page.Status "draft"}} selected{{end}}>Draft</option>
+				<option value="published"{{if eq .Page.Status "published"}} selected{{end}}>Published</option>
+			</select>
+		</div>
+
+		<div class="form-actions">
+			<button type="submit" class="btn btn-primary">Save Page</button>
+			<a href="/admin/pages/" class="btn btn-secondary">Cancel</a>
+		</div>
+	</form>
+	<div id="page-editor-result">{{template "page_editor_error" .}}</div>
 </main>
 <script src="/admin/static/assets/js/tinymce/tinymce.min.js"></script>
 <script>
-    const pageId = window.location.pathname.match(/\/pages\/(\d+)\/edit\//)?.[1];
+	// TinyMCE edits its own copy of the document, so it has to be pushed back
+	// into the textarea before the form is sent, whether HTMX or the browser
+	// sends it. This listener is registered before htmx is processed, so the
+	// textarea is current by the time the request is serialised.
+	document.getElementById('page-form').addEventListener('submit', function() {
+		tinymce.triggerSave();
+	});
 
-    tinymce.init({
-        license_key: 'gpl',
-        target: document.getElementById('content'),
-        height: 400,
-        menubar: '',
-        plugins: [
-            'advlist', 'autolink', 'link', 'image', 'lists', 'charmap', 'preview', 'anchor',
-            'searchreplace', 'wordcount', 'visualblocks', 'visualchars', 'code', 'fullscreen',
-            'media', 'table', 'emoticons', 'help'
-        ],
-        toolbar1: 'styles bold italic strikethrough link bullist numlist alignleft aligncenter alignright image media table code',
-        toolbar2: 'hr blockquote outdent indent anchor searchreplace charmap undo redo removeformat fullscreen wordcount help ',
-        styles_toolbar: '',
-        style_formats: [
-            {title: 'Paragraph', format: 'p'},
-            {title: 'Heading 2', format: 'h2'},
-            {title: 'Heading 3', format: 'h3'},
-            {title: 'Heading 4', format: 'h4'},
-            {title: 'Heading 5', format: 'h5'},
-            {title: 'Heading 6', format: 'h6'},
-            {title: 'Code', format: 'code'},
-            {title: 'Preformatted', format: 'pre'},
-            {title: 'Strikethrough', format: 'strikethrough'},
-            {title: 'Superscript', format: 'superscript'},
-            {title: 'Subscript', format: 'subscript'}
-        ],
-        setup: function(editor) {
-            editor.on('change', function() {
-                document.getElementById('content').value = editor.getContent();
-            });
-            editor.on('init', function() {
-                loadEditor(editor);   // TinyMCE is ready — safe to load data now
-            });
-        }
-    });
-
-    const titleField = document.getElementById('title');
-    const slugField = document.getElementById('slug');
-
-    let slugEdited = slugField.value !== '';
-
-    slugField.addEventListener('input', function() {
-        slugEdited = slugField.value !== '';
-    });
-
-    const accents = {à:'a', á:'a', â:'a', ä:'a', è:'e', é:'e', ê:'e', ë:'e',
-        ì:'i', í:'i', î:'i', ï:'i', ò:'o', ó:'o', ô:'o', ö:'o', õ:'o',
-        ù:'u', ú:'u', û:'u', ü:'u', ç:'c', ñ:'n'};
-
-    titleField.addEventListener('input', function(e) {
-        if (!slugEdited) {
-            let slug = e.target.value.toLowerCase().replace(
-                /[àáâäãåèéêëìíîïòóôöõùúûüçñ]/g,
-                c => accents[c] || c
-            );
-            slug = slug.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-            slugField.value = slug;
-        }
-    });
-
-    async function loadEditor(editor) {
-        if (pageId) {
-            const res = await fetch(`/admin/api/pages/${pageId}/`);
-            const page = await res.json();
-            document.getElementById('page-id').value = page.id;
-            document.getElementById('title').value = page.title;
-            document.getElementById('slug').value = page.slug;
-            document.getElementById('status').value = page.status;
-            editor.setContent(page.content || '');
-        }
-    }
-
-    document.getElementById('page-form').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const pageData = {
-            title: document.getElementById('title').value,
-            slug: document.getElementById('slug').value,
-            content: tinymce.activeEditor.getContent()
-        };
-        const url = pageId ? `/admin/api/pages/${pageId}/` : '/admin/api/pages/';
-        const method = pageId ? 'PUT' : 'POST';
-        const res = await fetch(url, {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(pageData)
-        });
-        if (res.ok) {
-            window.location.href = '/admin/pages/';
-        } else {
-            alert('Error saving page');
-        }
-    });
+	tinymce.init({
+		license_key: 'gpl',
+		target: document.getElementById('content'),
+		height: 400,
+		menubar: '',
+		plugins: [
+			'advlist', 'autolink', 'link', 'image', 'lists', 'charmap', 'preview', 'anchor',
+			'searchreplace', 'wordcount', 'visualblocks', 'visualchars', 'code', 'fullscreen',
+			'media', 'table', 'emoticons', 'help'
+		],
+		toolbar1: 'styles bold italic strikethrough link bullist numlist alignleft aligncenter alignright image media table code',
+		toolbar2: 'hr blockquote outdent indent anchor searchreplace charmap undo redo removeformat fullscreen wordcount help ',
+		styles_toolbar: '',
+		style_formats: [
+			{title: 'Paragraph', format: 'p'},
+			{title: 'Heading 2', format: 'h2'},
+			{title: 'Heading 3', format: 'h3'},
+			{title: 'Heading 4', format: 'h4'},
+			{title: 'Heading 5', format: 'h5'},
+			{title: 'Heading 6', format: 'h6'},
+			{title: 'Code', format: 'code'},
+			{title: 'Preformatted', format: 'pre'},
+			{title: 'Strikethrough', format: 'strikethrough'},
+			{title: 'Superscript', format: 'superscript'},
+			{title: 'Subscript', format: 'subscript'}
+		]
+	});
 </script>
 </body>
 </html>
+{{end}}
+{{define "page_editor_error"}}
+{{if .Error}}<p style="color: #b00020;">{{.Error}}</p>{{end}}
+{{end}}

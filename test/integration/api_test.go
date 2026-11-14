@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"gofolio/internal/handler/web"
+	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
+	"net/url"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"gofolio/internal/core"
@@ -69,6 +72,25 @@ func call(t *testing.T, client *http.Client, method, url string, body interface{
 	req, err := http.NewRequest(method, url, reader)
 	if err != nil {
 		t.Fatalf("%s %s: %v", method, url, err)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("%s %s: %v", method, url, err)
+	}
+	t.Cleanup(func() { resp.Body.Close() })
+	return resp
+}
+
+// callForm submits a form the way a browser does, optionally as HTMX would.
+func callForm(t *testing.T, client *http.Client, method, url string, form url.Values, htmx bool) *http.Response {
+	t.Helper()
+	req, err := http.NewRequest(method, url, strings.NewReader(form.Encode()))
+	if err != nil {
+		t.Fatalf("%s %s: %v", method, url, err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	if htmx {
+		req.Header.Set("HX-Request", "true")
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -169,4 +191,46 @@ func jsonNum(n int64) string {
 func toJSONNumber(n int64) string {
 	b, _ := json.Marshal(n)
 	return string(b)
+}
+
+// TestEditorFormsThroughRealRouter exercises the editor behind the real router,
+// because the unit tests drive a trimmed one: this is what proves the routes are
+// registered inside the authenticated group and that the templates parse.
+func TestEditorFormsThroughRealRouter(t *testing.T) {
+	base, client := newTestServer(t)
+
+	resp := call(t, client, http.MethodPost, base+"/api/auth/login/",
+		map[string]string{"username": "admin", "password": "password"})
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("login: status = %d, want %d", resp.StatusCode, http.StatusOK)
+	}
+
+	resp = call(t, client, http.MethodGet, base+"/admin/posts/new/", nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("editor: status = %d, want %d", resp.StatusCode, http.StatusOK)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("reading editor page: %v", err)
+	}
+	if !strings.Contains(string(body), `action="/admin/posts/save/"`) {
+		t.Error("editor form does not post to /admin/posts/save/")
+	}
+
+	resp = callForm(t, client, http.MethodPost, base+"/admin/posts/save/", url.Values{
+		"title":  {"Served Editor"},
+		"status": {"published"},
+	}, true)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("save: status = %d, want %d", resp.StatusCode, http.StatusOK)
+	}
+	if loc := resp.Header.Get("HX-Redirect"); loc != "/admin/posts/" {
+		t.Errorf("HX-Redirect = %q, want /admin/posts/", loc)
+	}
+
+	var fetched map[string]interface{}
+	decode(t, call(t, client, http.MethodGet, base+"/posts/served-editor/", nil), &fetched)
+	if fetched["title"] != "Served Editor" {
+		t.Errorf("published title = %v, want Served Editor", fetched["title"])
+	}
 }

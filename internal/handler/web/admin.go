@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-chi/chi/v5"
-
 	"gofolio/internal/handler/middleware"
 	"gofolio/internal/model"
 	"gofolio/internal/store"
@@ -18,13 +16,6 @@ type Admin struct {
 	DB   *sql.DB
 	Tpl  *Renderer
 	Sess *middleware.Sessions
-}
-
-// View serves a static admin template (used by pages not yet migrated).
-func (h Admin) View(file string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, AdminThemeDir+"/"+file)
-	}
 }
 
 // PostsData is the model for the posts page and the table fragment.
@@ -120,7 +111,7 @@ func (h Admin) DeletePost(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if r.Header.Get("HX-Request") == "true" {
+	if isHTMX(r) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
@@ -167,10 +158,6 @@ func (h Admin) posts() store.PostStore {
 
 func (h Admin) pages() store.PageStore {
 	return store.PageStore{DB: h.DB}
-}
-
-func parseID(r *http.Request) (int64, error) {
-	return strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 }
 
 // accentReplacer maps common Latin-1 accented letters to their base ASCII
@@ -285,18 +272,11 @@ func (h Admin) DeletePage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if r.Header.Get("HX-Request") == "true" {
+	if isHTMX(r) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
-}
-
-// PageEditor serves the page editor template for both /new/ and /{id}/edit/.
-// It is a static shell like posts/editor.html: the content loads via the
-// JSON API. Parameterised so one handler covers both routes.
-func (h Admin) PageEditor() http.HandlerFunc {
-	return h.View("page_editor.html")
 }
 
 func (h Admin) GetPost(w http.ResponseWriter, r *http.Request) {

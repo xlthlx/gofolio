@@ -89,7 +89,9 @@ fetching and deleting a post.
 ## What is not covered
 
 There is no browser-driven test, so the HTMX attributes and the TinyMCE editors
-are not executed anywhere. The editors are covered indirectly, through the pages
-API they call. `make test` does not enable the race detector, has no coverage
+are not executed anywhere. The editors are covered from the server side, by
+asserting the rendered form and both response paths of a save; the one part no
+test can reach is the JavaScript that syncs TinyMCE into the textarea before the
+form is sent. `make test` does not enable the race detector, has no coverage
 target, and there is no linting step beyond `go vet`, which is expected to stay
 clean.

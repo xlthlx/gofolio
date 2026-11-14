@@ -1,12 +1,13 @@
 {{define "pages_rows"}}
 <tbody id="pages-rows">
 {{if not .Pages}}
-<tr><td colspan="4">No pages yet.</td></tr>
+<tr><td colspan="5">No pages yet.</td></tr>
 {{end}}
 {{range .Pages}}
 <tr>
     <td>{{.Title}}</td>
     <td>{{.Slug}}</td>
+    <td>{{.Status}}</td>
     <td>{{.CreatedAt.Format "02/01/2006 15:04"}}</td>
     <td>
         <a class="btn btn-secondary" href="/admin/pages/{{.ID}}/edit/">Edit</a>

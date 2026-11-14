@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -57,6 +59,7 @@ func newTestRouter(db *sql.DB) http.Handler {
 
 	// Posts API
 	r.Get("/api/posts/", a.ListPosts)
+	r.Get("/admin/api/posts/{id}/", a.GetPost)
 	r.Post("/api/posts/", a.CreatePost)
 	r.Put("/api/posts/{id}/", a.UpdatePost)
 	r.Delete("/api/posts/{id}/", a.DeletePost)
@@ -70,8 +73,20 @@ func newTestRouter(db *sql.DB) http.Handler {
 	r.Get("/admin/pages/table/", a.PagesTable)
 	r.Get("/admin/settings/", a.SettingsPage)
 
+	// Editors: one handler per mode, one save endpoint shared by both
+	r.Get("/admin/posts/new/", a.PostEditor)
+	r.Get("/admin/posts/{id}/edit/", a.PostEditor)
+	r.Post("/admin/posts/save/", a.SavePost)
+	r.Get("/admin/pages/new/", a.PageEditor)
+	r.Get("/admin/pages/{id}/edit/", a.PageEditor)
+	r.Post("/admin/pages/save/", a.SavePage)
+
 	// Pages API
+	r.Get("/admin/api/pages/", a.ListPages)
+	r.Get("/admin/api/pages/{id}/", a.GetPage)
 	r.Post("/admin/api/pages/", a.CreatePage)
+	r.Put("/admin/api/pages/{id}/", a.UpdatePage)
+	r.Delete("/admin/api/pages/{id}/", a.DeletePage)
 
 	// Login (outside any auth middleware, as in production)
 	r.Get("/admin/login/", a.LoginGet)
@@ -98,6 +113,20 @@ func doJSON(t *testing.T, h http.Handler, method, path string, body interface{})
 	req := httptest.NewRequest(method, path, rd)
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
+	}
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	return rec
+}
+
+// doForm submits a form the way a browser does, optionally as HTMX would, so
+// both response paths of a handler that serves each can be asserted.
+func doForm(t *testing.T, h http.Handler, path string, form url.Values, htmx bool) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	if htmx {
+		req.Header.Set("HX-Request", "true")
 	}
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)

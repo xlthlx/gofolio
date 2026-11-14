@@ -34,10 +34,12 @@ gofolio/
 │   │   └── web/
 │   │       ├── admin.go          # Post and page handlers, slug generation
 │   │       ├── auth.go           # /api/auth endpoints
-│   │       ├── common.go         # JSON helpers, static file serving
+│   │       ├── common.go         # JSON, HTMX and id helpers, static files
 │   │       ├── dashboard.go      # Dashboard page and recent posts fragment
+│   │       ├── editor.go         # Post editor page and form save
 │   │       ├── health.go         # Liveness endpoint with database ping
 │   │       ├── login.go          # Admin login page and form post
+│   │       ├── page_editor.go    # Page editor page and form save
 │   │       ├── public.go         # Public JSON API
 │   │       ├── render.go         # Template parsing and the Renderer
 │   │       ├── settings.go       # Settings page and password change

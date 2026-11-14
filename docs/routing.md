@@ -44,12 +44,14 @@ These routes are inside the `/admin/` group and therefore require a session.
 | `GET` | `/admin/dashboard/recent/` | `recent_rows` fragment, polled by the dashboard every 30 seconds |
 | `GET` | `/admin/posts/` | Posts page, table rows rendered inline |
 | `GET` | `/admin/posts/table/` | `posts_rows` fragment only |
-| `GET` | `/admin/posts/new/` | Post editor, served as the static file `editor.html` |
-| `GET` | `/admin/posts/{id}/edit/` | Same static editor file; the id comes from the URL |
+| `GET` | `/admin/posts/new/` | Post editor, rendered empty |
+| `GET` | `/admin/posts/{id}/edit/` | Post editor rendered with the stored post; an unknown id is a 404 |
+| `POST` | `/admin/posts/save/` | Saves the post editor form, creating or updating on the id it carries |
 | `GET` | `/admin/pages/` | Pages page, table rows rendered inline |
 | `GET` | `/admin/pages/table/` | `pages_rows` fragment only |
-| `GET` | `/admin/pages/new/` | Page editor, served as the static file `page_editor.html` |
-| `GET` | `/admin/pages/{id}/edit/` | Same static page editor file |
+| `GET` | `/admin/pages/new/` | Page editor, rendered empty |
+| `GET` | `/admin/pages/{id}/edit/` | Page editor rendered with the stored page |
+| `POST` | `/admin/pages/save/` | Saves the page editor form, creating or updating |
 | `GET` | `/admin/settings/` | Settings page: site settings plus the password form |
 | `POST` | `/admin/settings/password/` | Password change, minimum eight characters |
 | `GET` | `/admin/settings/site/` | Site settings form filled with stored values |
@@ -61,15 +63,19 @@ the tests exercise them, but the posts and pages pages currently render the same
 `{{template "posts_rows" .}}` include inline rather than fetching it. Only the
 dashboard polls a fragment.
 
-The editor routes are worth a note: they serve `editor.html` and
-`page_editor.html` as plain files through `Admin.View`, without executing them
-as templates, because TinyMCE owns the content state and the page loads its data
-through the JSON API. See [templates.md](templates.md).
+The editor routes come in pairs. The two `GET` routes share a handler, which
+renders the form with the stored values already in place, and the id in the path
+is what tells them apart. Both `POST /save/` endpoints take the whole form,
+including a hidden id, and treat a request without one as a new record, so one
+handler covers creating and updating. TinyMCE owns the rich text field, so the
+browser sends the editor's HTML back in the same form; see
+[templates.md](templates.md).
 
 ## Admin JSON API
 
 Both resources live under `/admin/`, so the same session requirement applies.
-These endpoints are what the editors talk to.
+These endpoints are the JSON counterpart of the editors, used by the delete
+buttons in the tables and available to any client that prefers JSON to forms.
 
 | Method | Path | Behaviour |
 |---|---|---|
@@ -81,19 +87,17 @@ These endpoints are what the editors talk to.
 | `GET` | `/admin/api/pages/` | All pages as a JSON array |
 | `GET` | `/admin/api/pages/{id}/` | One page as JSON |
 | `POST` | `/admin/api/pages/` | Creates a page; returns `201 {"status":"created"}` |
-| `PUT` | `/admin/api/pages/{id}/` | Replaces title, slug and content; returns `{"status":"updated"}` |
+| `PUT` | `/admin/api/pages/{id}/` | Replaces title, slug, content and status; returns `{"status":"updated"}` |
 | `DELETE` | `/admin/api/pages/{id}/` | Same HTMX and API split as posts |
 
 Creation is forgiving in two ways: an empty `slug` is derived from the title, and
 an empty `status` becomes `draft`. A missing title is rejected with
-`400 Title is required`. Note that pages carry a `status` field in their JSON,
-but `PageStore` neither reads nor writes that column, so it always reports
-`draft`; [database.md](database.md) explains why.
+`400 Title is required`. Both rules apply to pages as well as posts, since the
+editor forms and the JSON API go through the same store methods.
 
 `PUT` is used where `PATCH` might be expected. The request body is decoded into a
 fresh model and all editable fields are written, so a partial body clears the
-fields it omits. On update, posts set `updated_at` while pages have no such
-column.
+fields it omits. Posts and pages both set `updated_at` on update.
 
 Malformed JSON and unparsable ids both answer with `400`. Unexpected database
 errors answer with `500` and the raw error text.
@@ -128,6 +132,13 @@ when `HX-Request: true` so the caller can drop the table row with
 `hx-swap="outerHTML"`, and `204` for plain API clients. Everything that renders
 HTML sets `Content-Type: text/html; charset=utf-8` explicitly before writing,
 and JSON uses the `writeJSON` helper in `internal/handler/web/common.go`.
+
+Saves follow the same split. The editor forms post over HTMX, so a successful
+save answers `200` with `HX-Redirect: /admin/posts/` and an empty body, while a
+failure answers the status that describes it with an error fragment the form
+swaps into place. Without HTMX the same handler redirects with `303` on success
+and re-renders the editor with the error on failure, so nothing depends on
+JavaScript being available.
 
 JSON errors are written with `http.Error`, which produces a `text/plain`
 response, so an error body is JSON shaped only when it was written by

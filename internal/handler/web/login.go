@@ -36,7 +36,7 @@ func (h Admin) LoginPost(w http.ResponseWriter, r *http.Request) {
 	username := r.PostFormValue("username")
 	password := r.PostFormValue("password")
 
-	hx := r.Header.Get("HX-Request") == "true"
+	hx := isHTMX(r)
 
 	if err := service.Login(h.DB, h.Sess, w, r, username, password); err != nil {
 		if hx {

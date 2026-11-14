@@ -31,10 +31,13 @@ share a shape, and `users` exists purely for authentication. Content has no
 author or category relation, and there is no foreign key anywhere in the schema
 today.
 
-Two columns are misleading if read on their own. `pages.status` is never written
-or read by `PageStore`, so it stays at its `draft` default and the JSON for a
-page always reports `"status":"draft"`. `pages.updated_at` is likewise never
-updated, even though posts set theirs on every update.
+`status` is free text rather than an enum, and only two values are used in
+practice: `draft` and `published`. It defaults to `draft` and the admin marks a
+post or page published through the editor select. For posts it also decides
+public visibility, since the public API only lists published posts; for pages it
+is descriptive, because pages are reachable by slug whatever their status says.
+Both `PageStore` and `PostStore` read and write `status` and `updated_at`, so the
+JSON for a page reports the stored status and the time of its last update.
 
 ## Migrations
 

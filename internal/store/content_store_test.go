@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"gofolio/internal/model"
 )
@@ -134,5 +135,75 @@ func TestPageStoreCreateAndGet(t *testing.T) {
 
 	if _, err := pgs.GetBySlug("ghost"); err == nil {
 		t.Error("missing page should return an error")
+	}
+}
+
+func TestPageStorePersistsStatusAndTimestamps(t *testing.T) {
+	db := newTestDB(t)
+	pgs := PageStore{DB: db}
+
+	in := &model.Page{Title: "About Us", Slug: "about-us", Status: "published"}
+	if err := pgs.Create(in); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	created, err := pgs.GetByID(in.ID)
+	if err != nil {
+		t.Fatalf("GetByID: %v", err)
+	}
+	if created.Status != "published" {
+		t.Errorf("Status after Create = %q, want published", created.Status)
+	}
+	if created.UpdatedAt.IsZero() {
+		t.Error("UpdatedAt is zero after Create")
+	}
+
+	// Age the timestamp so that the update below is provably what wrote it.
+	stale := time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC)
+	if _, err := db.Exec(`UPDATE pages SET updated_at = ? WHERE id = ?`, stale, in.ID); err != nil {
+		t.Fatalf("ageing updated_at: %v", err)
+	}
+
+	in.Status = "draft"
+	in.Content = "<p>version two</p>"
+	if err := pgs.Update(in, in.ID); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+
+	updated, err := pgs.GetBySlug("about-us")
+	if err != nil {
+		t.Fatalf("GetBySlug after update: %v", err)
+	}
+	if updated.Status != "draft" {
+		t.Errorf("Status after Update = %q, want draft", updated.Status)
+	}
+	if updated.Content != "<p>version two</p>" {
+		t.Errorf("Content = %q, want <p>version two</p>", updated.Content)
+	}
+	if !updated.UpdatedAt.After(stale) {
+		t.Errorf("UpdatedAt = %v, want later than %v", updated.UpdatedAt, stale)
+	}
+}
+
+func TestPageStoreListAllReportsStatus(t *testing.T) {
+	pgs := PageStore{DB: newTestDB(t)}
+
+	if err := pgs.Create(&model.Page{Title: "Draft", Slug: "draft", Status: "draft"}); err != nil {
+		t.Fatalf("Create draft: %v", err)
+	}
+	if err := pgs.Create(&model.Page{Title: "Live", Slug: "live", Status: "published"}); err != nil {
+		t.Fatalf("Create published: %v", err)
+	}
+
+	pages, err := pgs.ListAll()
+	if err != nil {
+		t.Fatalf("ListAll: %v", err)
+	}
+	statuses := map[string]string{}
+	for _, p := range pages {
+		statuses[p.Slug] = p.Status
+	}
+	if statuses["draft"] != "draft" || statuses["live"] != "published" {
+		t.Errorf("ListAll statuses = %v, want draft and published", statuses)
 	}
 }

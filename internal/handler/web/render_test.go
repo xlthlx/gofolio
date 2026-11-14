@@ -16,6 +16,7 @@ func TestFindAdminThemeDirLocatesTemplates(t *testing.T) {
 		"settings.html", "site_settings.html",
 		"dashboard.html", "dashboard_recent.html",
 		"login.html",
+		"editor.html", "page_editor.html",
 	} {
 		if _, err := os.Stat(filepath.Join(dir, name)); err != nil {
 			t.Errorf("theme dir %q missing %s: %v", dir, name, err)

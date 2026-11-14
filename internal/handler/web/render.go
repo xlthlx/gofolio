@@ -11,11 +11,13 @@ import (
 // fragments. HTMX needs server-rendered HTML; this is the single place that
 // produces it.
 type Renderer struct {
-	posts     *template.Template
-	pages     *template.Template
-	settings  *template.Template
-	dashboard *template.Template
-	login     *template.Template
+	posts      *template.Template
+	pages      *template.Template
+	settings   *template.Template
+	dashboard  *template.Template
+	login      *template.Template
+	postEditor *template.Template
+	pageEditor *template.Template
 }
 
 // FindAdminThemeDir locates the admin theme directory. It honours the
@@ -76,8 +78,21 @@ func NewRenderer(adminThemeDir string) (*Renderer, error) {
 	if err != nil {
 		return nil, err
 	}
+	postEditor, err := template.ParseFiles(
+		filepath.Join(adminThemeDir, "editor.html"),
+	)
+	if err != nil {
+		return nil, err
+	}
+	pageEditor, err := template.ParseFiles(
+		filepath.Join(adminThemeDir, "page_editor.html"),
+	)
+	if err != nil {
+		return nil, err
+	}
 	return &Renderer{posts: posts, pages: pages, settings: settings,
-		dashboard: dashboard, login: login}, nil
+		dashboard: dashboard, login: login, postEditor: postEditor,
+		pageEditor: pageEditor}, nil
 }
 
 // MustRenderer is NewRenderer, panicking on failure: a server that cannot
@@ -124,4 +139,20 @@ func (r *Renderer) LoginPage(w io.Writer, data interface{}) error {
 
 func (r *Renderer) LoginError(w io.Writer, data interface{}) error {
 	return r.login.ExecuteTemplate(w, "login_error", data)
+}
+
+func (r *Renderer) PostEditorPage(w io.Writer, data interface{}) error {
+	return r.postEditor.ExecuteTemplate(w, "editor_page", data)
+}
+
+func (r *Renderer) PostEditorError(w io.Writer, data interface{}) error {
+	return r.postEditor.ExecuteTemplate(w, "editor_error", data)
+}
+
+func (r *Renderer) PageEditorPage(w io.Writer, data interface{}) error {
+	return r.pageEditor.ExecuteTemplate(w, "page_editor_page", data)
+}
+
+func (r *Renderer) PageEditorError(w io.Writer, data interface{}) error {
+	return r.pageEditor.ExecuteTemplate(w, "page_editor_error", data)
 }

@@ -38,6 +38,8 @@ mind when editing.
 | settings | `settings.html`, `site_settings.html` | `settings.html`, `site_settings` |
 | dashboard | `dashboard.html`, `dashboard_recent.html` | `dashboard.html`, `recent_rows` |
 | login | `login.html` | `login_page`, `login_error` |
+| post editor | `editor.html` | `editor_page`, `editor_error` |
+| page editor | `page_editor.html` | `page_editor_page`, `page_editor_error` |
 
 `Renderer` exposes one method per thing it renders, such as `PostsPage`,
 `PostsRows`, `DashboardPage` and `LoginError`, and those are what handlers call.
@@ -63,39 +65,42 @@ Row delete buttons use `hx-delete` against `/admin/api/posts/{id}/` or
 responses are empty bodies on purpose, which is why the handlers answer `200`
 for HTMX rather than `204`.
 
-Two forms swap their result into the page in place: the login form posts to
-`/admin/login/` and targets `#login-error`, and the password form posts to
-`/admin/settings/password/` and targets `#password-result`. The password handler
-writes a small paragraph of HTML with an inline colour, which is the one place
-where styling is emitted from Go rather than from the stylesheet.
+Three forms swap their result into the page in place: the login form posts to
+`/admin/login/` and targets `#login-error`, the password form posts to
+`/admin/settings/password/` and targets `#password-result`, and the two editors
+post to `/admin/posts/save/` and `/admin/pages/save/` with their error fragment
+targeted at an empty result container. The password handler writes a small
+paragraph of HTML with an inline colour, which is the one place where styling is
+emitted from Go rather than from the stylesheet; the error fragments do the same
+to stay consistent with it.
 
 Every one of these flows also works as a plain form submission. The forms carry
-no `method` and `action` attributes in some cases, or a conventional `action` in
-others, and the handlers answer accordingly, so the admin remains usable with
-JavaScript disabled. HTMX is always detected the same way, by checking whether
-the `HX-Request` header equals `true`.
+a conventional `method` and `action` alongside the `hx-` attributes, and the
+handlers answer accordingly, so the admin remains usable with JavaScript
+disabled. HTMX is always detected the same way, by checking whether the
+`HX-Request` header equals `true`.
 
 ## The two editors
 
-`editor.html` and `page_editor.html` break the pattern above on purpose. They
-are served as static files through `Admin.View`, not executed as templates, and
-they load and save through the JSON API because TinyMCE keeps its own copy of the
-document. Loading waits for TinyMCE's `init` event before fetching
-`/admin/api/posts/{id}/` or `/admin/api/pages/{id}/`, and saving sends a `POST`
-or `PUT` to the matching collection endpoint and then navigates back to the
-list. The hidden id field is populated from the response rather than from the
-URL.
+The two editors follow the same pattern as every other admin page, with one
+complication: TinyMCE owns the rich text field, and it keeps its own copy of the
+document. The forms therefore arrive fully rendered by the server, including the
+stored title, slug, content and status, and each one posts its whole self back to
+`/admin/posts/save/` or `/admin/pages/save/`. A hidden `id` field decides whether
+the save creates or updates, so one handler serves both modes.
 
-Both editors also preview a slug while the title is typed, duplicating the rules
-from `Slugify`. The JavaScript covers the accented characters `à á â ä è é ê ë ì
-í î ï ò ó ô ö õ ù ú û ü ç ñ`, lowercases, and replaces runs of anything outside
-`a-z0-9` with a hyphen. The Go implementation handles a slightly wider set (`ã`,
-`å` and `ý` are included), turns apostrophes into hyphens as well, and drops
-punctuation rather than converting it to a hyphen the way the preview does. The
-preview can therefore differ from the slug the server stores, most visibly for
-titles containing those accents or punctuation such as a slash. Keeping the two in
-sync is manual work, and the preview is only ever a preview: the stored slug is
-computed by `Slugify` in `admin.go` whenever the submitted slug is empty.
+The only JavaScript left in each editor is the TinyMCE initialisation plus a
+submit listener that calls `tinymce.triggerSave()`, which copies the editor's
+HTML back into the textarea before the form is serialised. That listener is
+registered while the page is parsed, and `htmx.min.js` is loaded with `defer`, so
+the textarea is current before HTMX collects the form values. Loading needs no
+request at all: the textarea already holds the content when TinyMCE initialises
+over it.
+
+Because the server derives the slug, and because the form always submits the
+stored slug when one exists, the editors carry no client-side slug preview. A
+title typed into an empty slug field is turned into a slug by `Slugify` in
+`admin.go` when the save arrives.
 
 ## Settings page detail
 
@@ -115,5 +120,5 @@ file to the matching `template.ParseFiles` call in `NewRenderer` and add a
 `Renderer` method that executes the right template name. Third, register the
 route in `internal/core/router.go` with a trailing slash. If the page needs the
 admin shell, the existing pages are the pattern to copy: the same header, nav and
-stylesheet link appear at the top of `posts.html`, `pages.html`, `settings.html`
-and `dashboard.html`.
+stylesheet link appear at the top of `posts.html`, `pages.html`, `settings.html`,
+`dashboard.html` and both editors.

@@ -56,13 +56,15 @@ func New(db *sql.DB, tpl *web.Renderer, sess *middleware.Sessions) http.Handler 
 
 		r.Get("/posts/", admin.PostsPage)
 		r.Get("/posts/table/", admin.PostsTable)
-		r.Get("/posts/new/", admin.View("editor.html"))
-		r.Get("/posts/{id}/edit/", admin.View("editor.html"))
+		r.Get("/posts/new/", admin.PostEditor)
+		r.Get("/posts/{id}/edit/", admin.PostEditor)
+		r.Post("/posts/save/", admin.SavePost)
 
 		r.Get("/pages/", admin.PagesPage)
 		r.Get("/pages/table/", admin.PagesTable)
-		r.Get("/pages/new/", admin.PageEditor())
-		r.Get("/pages/{id}/edit/", admin.PageEditor())
+		r.Get("/pages/new/", admin.PageEditor)
+		r.Get("/pages/{id}/edit/", admin.PageEditor)
+		r.Post("/pages/save/", admin.SavePage)
 
 		r.Get("/settings/", admin.SettingsPage)
 		r.Post("/settings/password/", admin.ChangePassword)

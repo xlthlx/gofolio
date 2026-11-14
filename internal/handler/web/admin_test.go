@@ -1,14 +1,12 @@
 package web_test
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"github.com/go-chi/chi/v5"
 
 	"gofolio/internal/handler/web"
 )
@@ -75,6 +73,61 @@ func TestDeletePostRoundTrip(t *testing.T) {
 	}
 }
 
+// HTMX deletes answer 200 with an empty body so hx-swap="outerHTML" can drop
+// the table row; plain API clients keep the 204 that TestDeletePostRoundTrip
+// covers.
+func TestDeletePostHTMXReturnsEmptyOK(t *testing.T) {
+	h := newTestRouter(newHandlerTestDB(t))
+
+	create := doJSON(t, h, http.MethodPost, "/api/posts/", map[string]string{"title": "Doomed"})
+	var created struct {
+		ID int64 `json:"id"`
+	}
+	if err := json.Unmarshal(create.Body.Bytes(), &created); err != nil {
+		t.Fatalf("decoding created post: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/posts/%d/", created.ID), nil)
+	req.Header.Set("HX-Request", "true")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if rec.Body.Len() != 0 {
+		t.Errorf("body = %q, want an empty body", rec.Body.String())
+	}
+}
+
+func TestDeletePageHTMXReturnsEmptyOK(t *testing.T) {
+	h := newTestRouter(newHandlerTestDB(t))
+
+	create := doJSON(t, h, http.MethodPost, "/admin/api/pages/", map[string]string{"title": "Doomed"})
+	if create.Code != http.StatusCreated {
+		t.Fatalf("seeding page: status = %d", create.Code)
+	}
+	list := doJSON(t, h, http.MethodGet, "/admin/api/pages/", nil)
+	var pages []struct {
+		ID int64 `json:"id"`
+	}
+	if err := json.Unmarshal(list.Body.Bytes(), &pages); err != nil || len(pages) != 1 {
+		t.Fatalf("listing pages: %v (%d pages)", err, len(pages))
+	}
+
+	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/admin/api/pages/%d/", pages[0].ID), nil)
+	req.Header.Set("HX-Request", "true")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if rec.Body.Len() != 0 {
+		t.Errorf("body = %q, want an empty body", rec.Body.String())
+	}
+}
+
 func TestPostsTableFragment(t *testing.T) {
 	h := newTestRouter(newHandlerTestDB(t))
 
@@ -103,20 +156,8 @@ func TestPagesTableFragment(t *testing.T) {
 	}
 }
 
-func newTestRouterWithPages(db *sql.DB) http.Handler {
-	a := &web.Admin{DB: db, Tpl: testRenderer, Sess: testSess}
-	r := chi.NewRouter()
-	r.Post("/admin/api/pages/", a.CreatePage)
-	r.Get("/admin/api/pages/", a.ListPages)
-	r.Get("/api/pages/{id}/", a.GetPage)
-	r.Put("/api/pages/{id}/", a.UpdatePage)
-	r.Delete("/api/pages/{id}/", a.DeletePage)
-	r.Get("/admin/pages/table/", a.PagesTable)
-	return r
-}
-
-func TestPageEditorRoundTrip(t *testing.T) {
-	h := newTestRouterWithPages(newHandlerTestDB(t))
+func TestPagesAPIRoundTrip(t *testing.T) {
+	h := newTestRouter(newHandlerTestDB(t))
 
 	create := doJSON(t, h, http.MethodPost, "/admin/api/pages/",
 		map[string]string{"title": "About Us", "content": "<p>v1</p>"})
@@ -138,6 +179,7 @@ func TestPageEditorRoundTrip(t *testing.T) {
 		Title   string `json:"title"`
 		Slug    string `json:"slug"`
 		Content string `json:"content"`
+		Status  string `json:"status"`
 	}
 	if err := json.Unmarshal(list.Body.Bytes(), &pages); err != nil || len(pages) != 1 {
 		t.Fatalf("listing pages: %v (%d pages)", err, len(pages))
@@ -146,12 +188,15 @@ func TestPageEditorRoundTrip(t *testing.T) {
 	if pages[0].Slug != "about-us" {
 		t.Errorf("derived slug = %q, want about-us", pages[0].Slug)
 	}
+	if pages[0].Status != "draft" {
+		t.Errorf("status = %q, want draft", pages[0].Status)
+	}
 	rec := doJSON(t, h, http.MethodGet, "/admin/pages/table/", nil)
 	if !strings.Contains(rec.Body.String(), "About Us") {
 		t.Error("table fragment does not render created page")
 	}
 
-	got := doJSON(t, h, http.MethodGet, fmt.Sprintf("/api/pages/%d/", id), nil)
+	got := doJSON(t, h, http.MethodGet, fmt.Sprintf("/admin/api/pages/%d/", id), nil)
 	if got.Code != http.StatusOK {
 		t.Fatalf("get status = %d, want %d", got.Code, http.StatusOK)
 	}
@@ -165,12 +210,12 @@ func TestPageEditorRoundTrip(t *testing.T) {
 		t.Errorf("content = %q, want <p>v1</p>", page.Content)
 	}
 
-	upd := doJSON(t, h, http.MethodPut, fmt.Sprintf("/api/pages/%d/", id),
+	upd := doJSON(t, h, http.MethodPut, fmt.Sprintf("/admin/api/pages/%d/", id),
 		map[string]string{"title": "About Us", "content": "<p>v2</p>"})
 	if upd.Code != http.StatusOK {
 		t.Fatalf("update status = %d, body: %s", upd.Code, upd.Body.String())
 	}
-	got2 := doJSON(t, h, http.MethodGet, fmt.Sprintf("/api/pages/%d/", id), nil)
+	got2 := doJSON(t, h, http.MethodGet, fmt.Sprintf("/admin/api/pages/%d/", id), nil)
 	var page2 struct {
 		Content string `json:"content"`
 	}
@@ -179,19 +224,19 @@ func TestPageEditorRoundTrip(t *testing.T) {
 		t.Errorf("content after update = %q, want <p>v2</p>", page2.Content)
 	}
 
-	del := doJSON(t, h, http.MethodDelete, fmt.Sprintf("/api/pages/%d/", id), nil)
+	del := doJSON(t, h, http.MethodDelete, fmt.Sprintf("/admin/api/pages/%d/", id), nil)
 	if del.Code != http.StatusNoContent {
 		t.Errorf("delete status = %d, want %d", del.Code, http.StatusNoContent)
 	}
-	final := doJSON(t, h, http.MethodGet, fmt.Sprintf("/api/pages/%d/", id), nil)
+	final := doJSON(t, h, http.MethodGet, fmt.Sprintf("/admin/api/pages/%d/", id), nil)
 	if final.Code != http.StatusNotFound {
 		t.Errorf("deleted page still fetchable: status = %d, want %d", final.Code, http.StatusNotFound)
 	}
 }
 
 func TestUpdatePageInvalidID(t *testing.T) {
-	h := newTestRouterWithPages(newHandlerTestDB(t))
-	rec := doJSON(t, h, http.MethodPut, "/api/pages/notanumber/",
+	h := newTestRouter(newHandlerTestDB(t))
+	rec := doJSON(t, h, http.MethodPut, "/admin/api/pages/notanumber/",
 		map[string]string{"title": "x"})
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusBadRequest)
