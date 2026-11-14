@@ -70,6 +70,8 @@ The image exposes port 8080 and includes a health check that probes the `/health
 
 The repository follows the layout described in detail in [docs/folder-structure.md](docs/folder-structure.md). Application entry points live under `cmd/server`. Domain logic is organised in `internal`, split into `core` for routing, `handler` for HTTP endpoints and middleware, `service` for business rules, `model` for data structures, and `store` for persistence. Shared reusable utilities live in `pkg`. Admin and public themes, including their stylesheets, are under `web/themes`. Integration tests live in `test/integration`.
 
+The [documentation index](docs/README.md) leads to the fuller notes: the architecture and request lifecycle, the route table, the template and HTMX conventions, the database schema and migration rules, authentication and its known gaps, the test layout, and how to deploy the binary or the container image.
+
 ## Security notes
 
 Passwords are hashed with bcrypt. Session cookies are marked HttpOnly. Authentication for the admin panel is enforced by middleware on every admin route. The application is suitable for small, self-hosted deployments; anyone exposing it publicly should review the session cookie `Secure` flag, which is currently disabled pending HTTPS deployment.

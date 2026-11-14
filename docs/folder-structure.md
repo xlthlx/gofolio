@@ -1,133 +1,128 @@
 # goFolio CMS – Folder Structure
 
+The tree below is the repository as it stands, with a note on what each file
+holds.
+
 ```
 gofolio/
 ├── cmd/
 │   └── server/
-│       ├── main.go          # Application entry point
-│       └── config.go        # Configuration loading
+│       ├── config.go             # Environment variable loading
+│       └── main.go               # Startup sequence and graceful shutdown
 │
 ├── docs/
-│   ├── index.md             # Index of the documentation
-│   ├── folder-structure.md  # This file
+│   ├── README.md                 # Index of the documentation
+│   ├── architecture.md           # Layers and request lifecycle
+│   ├── authentication.md         # Sessions, login and security posture
+│   ├── database.md               # Schema, migrations and stores
+│   ├── deployment.md             # Binary, Docker image and Compose
+│   ├── development.md            # Commands, configuration and conventions
+│   ├── folder-structure.md       # This file
+│   ├── routing.md                # Route table and HTTP conventions
+│   ├── templates.md              # Rendering, fragments and HTMX
+│   └── testing.md                # Test layout and helpers
 │
 ├── internal/
 │   ├── core/
-│   │   ├── engine.go        # Core CMS engine
-│   │   └── router.go        # Request routing
+│   │   └── router.go             # Route table and middleware chain
 │   │
 │   ├── handler/
-│   │   ├── web/
-│   │   │   ├── admin.go     # Admin panel handlers
-│   │   │   ├── api.go       # REST API handlers
-│   │   │   └── public.go    # Public site handlers
-│   │   └── middleware/
-│   │       ├── auth.go      # Authentication middleware
-│   │       ├── logging.go   # Request logging
-│   │       └── recovery.go  # Panic recovery
-│   │
-│   ├── service/
-│   │   ├── content.go       # Content CRUD operations
-│   │   ├── user.go          # User management
-│   │   └── media.go         # Media/file handling
+│   │   ├── middleware/
+│   │   │   ├── auth.go           # RequireAuth middleware
+│   │   │   └── session.go        # Cookie session store
+│   │   │
+│   │   └── web/
+│   │       ├── admin.go          # Post and page handlers, slug generation
+│   │       ├── auth.go           # /api/auth endpoints
+│   │       ├── common.go         # JSON helpers, static file serving
+│   │       ├── dashboard.go      # Dashboard page and recent posts fragment
+│   │       ├── health.go         # Liveness endpoint with database ping
+│   │       ├── login.go          # Admin login page and form post
+│   │       ├── public.go         # Public JSON API
+│   │       ├── render.go         # Template parsing and the Renderer
+│   │       ├── settings.go       # Settings page and password change
+│   │       └── settings_site.go  # Site settings form
 │   │
 │   ├── model/
-│   │   ├── content.go       # Content struct & DB schema
-│   │   ├── user.go          # User struct & DB schema
-│   │   └── media.go         # Media struct & DB schema
+│   │   ├── content.go            # Post and Page structs
+│   │   └── user.go               # User struct
+│   │
+│   ├── service/
+│   │   └── user.go               # User creation, login, password change
 │   │
 │   └── store/
-│       ├── db.go            # Database connection setup
-│       ├── content_store.go # Content persistence
-│       ├── user_store.go    # User persistence
-│       └── media_store.go   # Media persistence
+│       ├── content_store.go      # PostStore and PageStore
+│       ├── db.go                 # Connection handling and schema
+│       └── settings_store.go     # SettingStore
 │
 ├── pkg/
-│   ├── database/
-│   │   └── sqlite.go        # SQLite database
-│   ├── logger/
-│   │   └── zap_logger.go    # Structured logging
+│   ├── database/                 # Placeholder, empty
+│   ├── logger/                   # Placeholder, empty
 │   └── util/
-│       ├── hash.go          # Password hashing
-│       └── uuid.go          # ID generation helpers
-│
-├── api/
-│   └── v1/
-│       ├── openapi.yaml     # OpenAPI/Swagger spec
-│       └── routes.go        # API route definitions
+│       └── hash.go               # bcrypt password hashing
 │
 ├── web/
 │   └── themes/
-│       ├── admin/           # Admin HTML templates
-│       │   └── default/
-│       │       └── assets/
-│       │           ├── css/  # Admin panel styles
-│       │           ├── js/   # Admin scripts
-│       │           └── img/  # Static assets
-│       └── public/          # Public site templates
-│           └── default/
-│               └── assets/
-│                   ├── css/  # Frontend styles
-│                   ├── js/   # Frontend scripts
-│                   └── img/  # Static assets
-│
-├── scripts/
-│   ├── migrate.sh           # Database migrations runner
-│   └── build.sh             # Build script
+│       ├── admin/default/        # Admin templates and static assets
+│       └── public/default/       # Public assets; index.html is not routed
 │
 ├── test/
-│   ├── integration/         # Integration tests
-│   │   ├── content_test.go
-│   │   ├── user_test.go
-│   │   └── api_test.go
-│   └── fixtures/            # Test data/fixtures
+│   ├── fixtures/                 # Placeholder, empty
+│   └── integration/
+│       └── api_test.go           # End-to-end tests through the real router
 │
-├── .env.example             # Environment template
-├── docker-compose.yml       # Docker compose file
-├── Dockerfile               # Docker file
-├── Makefile                 # Build/test commands
-├── go.mod                   # Module definition
-├── go.sum                   # Dependencies
-└── README.md                # Project documentation
+├── api/v1/                       # Placeholder, empty
+├── assets/                       # Project logo and banner
+├── vendor/                       # Vendored dependencies, committed
+│
+├── docker-compose.yml
+├── Dockerfile
+├── LICENSE
+├── Makefile
+├── README.md
+├── go.mod
+├── go.sum
 ```
 
----
+Test files are not listed individually because they follow the source files
+exactly: every Go file in `internal/` that carries logic has a matching
+`_test.go` beside it, and the handler package keeps its shared test scaffolding
+in `internal/handler/web/common_test.go`.
 
-## Key Design Principles
+## Placeholders and leftovers
 
-**Simple and Idiomatic**
-- Follows standard Go project layout conventions
-- Easy to navigate and extend
-- Clear separation of concerns
+Several directories exist only to reserve a place: `pkg/database`, `pkg/logger`,
+`api/v1`, `scripts` and `test/fixtures` contain nothing but `.gitkeep` files.
+Earlier drafts of this document also named an engine in `internal/core`, a REST
+handler file, media handling across the model, service and store layers, an
+OpenAPI specification and a migration script. None of those exist, and this tree
+deliberately omits them so it can be trusted as a map.
 
-**Test-Ready**
-- Dedicated `test/integration` folder for end-to-end tests
-- Internal packages structured for unit test isolation
-- Fixtures folder for reproducible test data
+## Key design principles
 
-**Modular Growth**
-- Each domain (content, user, media) has its own handler/service/store slice
-- Middleware separated for easy composition
-- Config environments isolated for safe deployments
+The layout follows the conventional Go project shape, with application code under
+`internal`, one entry point under `cmd`, and reusable helpers under `pkg`. Files
+are small and each one covers a single responsibility, so a reader looking for
+behaviour can usually guess the file from the feature.
 
----
+Testability is built into the shape rather than added on top. Packages that need
+internals use internal tests, the handler package is tested through its exported
+API, and the integration suite boots the real router so middleware and status
+codes are covered too. Nothing depends on package-global state, which is why
+sessions and templates are injected into `core.New` instead of being created
+where they are used.
 
-## First Implementation Order
+Growth is expected along the existing seams. A new resource gains a store in
+`internal/store`, a handler in `internal/handler/web`, a template group and a set
+of routes, in that order of dependency. Media support, when it arrives, would
+extend the same three layers rather than introduce a new pattern.
 
-1. **Foundation** (`cmd/`, `go.mod`, `.env.example`)
-2. **Core Layer** (`internal/model/`, `internal/store/db.go`)
-3. **Business Logic** (`internal/service/`)
-4. **HTTP Interface** (`internal/handler/web/`, `internal/handler/middleware/`)
-5. **Tests** (`test/integration/*_test.go`)
-6. **Assets & Templates** (`web/`)
-7. **Documentation** (`README.md`, `api/v1/openapi.yaml`)
+## Naming conventions
 
----
-
-## Naming Convention Notes
-
-- Package names are lowercase and descriptive (`store`, `handler`, `service`)
-- Files within packages are named after their primary responsibility (`content.go`, `auth.go`)
-- Test files mirror source: `content.go` → `content_test.go`
-
----
+Packages are lowercase and descriptive, as in `store`, `service` and
+`middleware`. Files are named after their primary responsibility, so
+`settings_site.go` holds the site settings handler and `content_store.go` holds
+the content stores. Tests mirror their source file exactly, which is what keeps
+the handler package's one-file-per-source layout readable. Templates are named
+after the page they render, and fragment templates take a `_table` or `_recent`
+suffix.
